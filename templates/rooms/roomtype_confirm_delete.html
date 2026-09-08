@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Supprimer type de salle — RoomBooking{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Confirmer</h4>
+            </div>
+            <div class="card-body p-4 text-center">
+                <p class="lead">Supprimer le type <strong>"{{ object.name }}"</strong> ?</p>
+                {% if object.rooms.count %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-circle"></i>
+                    {{ object.rooms.count }} salle{{ object.rooms.count|pluralize }} utilise{{ object.rooms.count|pluralize }} encore ce type.
+                    La suppression sera refusée tant que ces salles ne sont pas réassignées à un autre type.
+                </div>
+                {% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="submit" class="btn btn-danger">Oui, supprimer</button>
+                        <a href="{% url 'rooms:roomtype_list' %}" class="btn btn-outline-secondary">Annuler</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

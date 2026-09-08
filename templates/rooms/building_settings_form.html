@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Paramètres du bâtiment — RoomBooking{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-building-gear"></i> Paramètres du bâtiment</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted">
+                    Définissez le nombre d'étages du bâtiment. Cette information sera utilisée
+                    pour proposer la liste des étages disponibles lorsque les utilisateurs
+                    réservent une salle de réunion.
+                </p>
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-layers"></i> {{ form.floor_count.label }}</label>
+                        {{ form.floor_count }}
+                        <div class="form-text">{{ form.floor_count.help_text }}</div>
+                        {% for error in form.floor_count.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><i class="bi bi-house"></i> {{ form.ground_floor_label.label }}</label>
+                        {{ form.ground_floor_label }}
+                        {% for error in form.ground_floor_label.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="alert alert-light border">
+                        <strong><i class="bi bi-eye"></i> Aperçu des étages proposés :</strong>
+                        <div class="mt-2 d-flex flex-wrap gap-2">
+                            {% for value, label in object.floor_choices %}
+                            <span class="badge bg-secondary">{{ label }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
+                        <a href="{% url 'bookings:calendar' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

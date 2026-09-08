@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}Modifier{% else %}Nouvel{% endif %} équipement — RoomBooking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .icon-choice { position: relative; cursor: pointer; }
+    .icon-choice input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .icon-choice .icon-card {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 4px; padding: 10px 6px; border: 1px solid #dee2e6; border-radius: 10px;
+        text-align: center; height: 100%; transition: all .12s ease;
+    }
+    .icon-choice .icon-card i { font-size: 1.5rem; }
+    .icon-choice .icon-card span { font-size: 11px; color: #6c757d; line-height: 1.1; }
+    .icon-choice:hover .icon-card { border-color: #3b82f6; background: #f8fafc; }
+    .icon-choice input[type="radio"]:checked ~ .icon-card {
+        border-color: #3b82f6; background: #eff6ff; box-shadow: 0 0 0 1px #3b82f6 inset;
+    }
+    .icon-choice input[type="radio"]:checked ~ .icon-card i,
+    .icon-choice input[type="radio"]:checked ~ .icon-card span { color: #2563eb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">{% if object %}Modifier{% else %}Nouvel{% endif %} équipement</h4>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    {% for field in form %}
+                    <div class="mb-3">
+                        {% if field.name == 'icon' %}
+                        <label class="form-label">{{ field.label }}</label>
+                        <div class="row row-cols-3 row-cols-md-5 g-2">
+                            {% for choice in field %}
+                            <div class="col">
+                                <label class="icon-choice d-block" for="{{ choice.id_for_label }}">
+                                    {{ choice.tag }}
+                                    <span class="icon-card">
+                                        {% if choice.data.value %}
+                                        <i class="bi {{ choice.data.value }}"></i>
+                                        {% else %}
+                                        <i class="bi bi-slash-circle text-muted"></i>
+                                        {% endif %}
+                                        <span>{{ choice.choice_label }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <label class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% endif %}
+                        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        <a href="{% url 'rooms:equipment_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

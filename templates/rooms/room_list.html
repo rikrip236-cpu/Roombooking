@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Salles — RoomBooking{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-building"></i> Salles de réunion</h2>
+    <div class="d-flex gap-2">
+        <a href="{% url 'bookings:calendar' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
+        {% if user.is_admin %}
+        <a href="{% url 'rooms:room_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nouvelle salle</a>
+        {% endif %}
+    </div>
+</div>
+<form method="get" class="row g-2 align-items-end mb-4">
+    <div class="col-md-4">
+        <label class="form-label">Rechercher</label>
+        <input type="text" name="q" class="form-control" placeholder="Nom de la salle..." value="{{ search_query }}">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Type de salle</label>
+        <select name="type" class="form-select">
+            <option value="">Tous les types</option>
+            {% for t in room_types %}
+            <option value="{{ t.id }}" {% if selected_type == t.id|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Capacité minimale</label>
+        <input type="number" name="capacity" min="1" class="form-control" placeholder="Ex : 10" value="{{ min_capacity }}">
+    </div>
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Rechercher</button>
+        <a href="{% url 'rooms:room_list' %}" class="btn btn-outline-secondary">Réinitialiser</a>
+    </div>
+</form>
+<div class="row g-4">
+    {% for room in rooms %}
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm {% if not room.is_active %}border-secondary opacity-75{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h5 class="card-title">{{ room.name }}</h5>
+                    {% if not room.is_active %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+                </div>
+                {% if room.room_type %}<span class="badge bg-primary mb-2"><i class="bi {{ room.room_type.icon|default:'bi-tag' }}"></i> {{ room.room_type.name }}</span>{% endif %}
+                <p class="card-text text-muted">{{ room.description|truncatewords:15|default:"Aucune description" }}</p>
+                <div class="mb-2">
+                    <span class="badge bg-info"><i class="bi bi-people"></i> {{ room.capacity }} pers.</span>
+                    {% for eq in room.equipment.all %}<span class="badge bg-light text-dark border"><i class="bi {{ eq.icon|default:'bi-check2' }}"></i> {{ eq.name }}</span>{% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{% url 'rooms:room_detail' room.pk %}" class="btn btn-sm btn-outline-primary">Détails</a>
+                {% if user.is_admin %}
+                <a href="{% url 'rooms:room_update' room.pk %}" class="btn btn-sm btn-outline-warning">Modifier</a>
+                <a href="{% url 'rooms:room_delete' room.pk %}" class="btn btn-sm btn-outline-danger">Supprimer</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center text-muted py-5">
+        <i class="bi bi-building-slash display-4"></i>
+        <p>Aucune salle disponible.</p>
+    </div>
+    {% endfor %}
+</div>
+{% if is_paginated %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&capacity={{ min_capacity }}&type={{ selected_type }}">Précédent</a></li>{% endif %}
+        <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&capacity={{ min_capacity }}&type={{ selected_type }}">Suivant</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

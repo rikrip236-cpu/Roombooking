@@ -1,0 +1,14 @@
+roombooking/
+├── config/settings.py          ← Multi-base (mysql/postgres/sqlite)
+├── requirements.txt            ← + mysqlclient
+├── .env / .env.laragon / .env.postgres / .env.sqlite
+│
+├── apps/accounts/rooms/bookings/  ← Code source complet
+├── templates/                     ← 13 templates Bootstrap 5
+├── fixtures/demo.json             ← Données de démo Django
+├── docs/                          ← README, guide, présentation, diagrammes
+├── Docker/                        ← Dockerfile, compose, nginx
+├── start.bat / stop.bat           ← Démarrage/arrêt Windows (Laragon)
+│                                     La base et ses tables sont créées
+│                                     automatiquement via les migrations
+│                                     Django (plus de script SQL manuel).

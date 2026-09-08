@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}Annuler — RoomBooking{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="bi bi-exclamation-circle"></i> Annuler la réservation</h4>
+            </div>
+            <div class="card-body p-4 text-center">
+                <p class="lead">Voulez-vous annuler la réservation <strong>"{{ object.title }}"</strong> ?</p>
+                <p class="text-muted">{{ object.room.name }} — {{ object.start_datetime|date:"d/m/Y H:i" }}</p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="submit" class="btn btn-warning">Oui, annuler</button>
+                        <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary">Retour</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,255 @@
+[
+  {
+    "model": "rooms.roomtype",
+    "pk": 1,
+    "fields": {
+      "name": "Salle de réunion",
+      "description": "Réunions d'équipe classiques",
+      "icon": "bi-people"
+    }
+  },
+  {
+    "model": "rooms.roomtype",
+    "pk": 2,
+    "fields": {
+      "name": "Salle de conférence",
+      "description": "Grandes salles pour présentations et événements",
+      "icon": "bi-easel2"
+    }
+  },
+  {
+    "model": "rooms.roomtype",
+    "pk": 3,
+    "fields": {
+      "name": "Bureau focus",
+      "description": "Petits espaces pour travail individuel ou en binôme",
+      "icon": "bi-person-workspace"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 1,
+    "fields": {
+      "name": "Projecteur",
+      "description": "Projecteur HD",
+      "icon": "bi-projector"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 2,
+    "fields": {
+      "name": "Tableau blanc",
+      "description": "Tableau effaçable",
+      "icon": "bi-easel"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 3,
+    "fields": {
+      "name": "Visioconférence",
+      "description": "Système Zoom/Teams",
+      "icon": "bi-camera-video"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 4,
+    "fields": {
+      "name": "Wi-Fi",
+      "description": "Connexion haut débit",
+      "icon": "bi-wifi"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 5,
+    "fields": {
+      "name": "Écran",
+      "description": "Écran de télévision / moniteur pour partager du contenu",
+      "icon": "bi-display"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 6,
+    "fields": {
+      "name": "Paperboard",
+      "description": "Chevalet à feuilles pour prise de notes collective",
+      "icon": "bi-easel2-fill"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 7,
+    "fields": {
+      "name": "Climatisation",
+      "description": "Climatisation réglable",
+      "icon": "bi-snow"
+    }
+  },
+  {
+    "model": "rooms.equipment",
+    "pk": 8,
+    "fields": {
+      "name": "Prise électrique",
+      "description": "Multiprise / prises secteur accessibles à table",
+      "icon": "bi-plug"
+    }
+  },
+  {
+    "model": "rooms.room",
+    "pk": 1,
+    "fields": {
+      "name": "Salle A — Réunion",
+      "capacity": 8,
+      "description": "Salle standard avec projecteur",
+      "is_active": true,
+      "equipment": [
+        1,
+        2,
+        4,
+        5,
+        8
+      ],
+      "room_type": 1,
+      "created_at": "2026-01-15T09:00:00Z",
+      "updated_at": "2026-01-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "rooms.room",
+    "pk": 2,
+    "fields": {
+      "name": "Salle B — Conférence",
+      "capacity": 20,
+      "description": "Grande salle avec visioconférence",
+      "is_active": true,
+      "equipment": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "room_type": 2,
+      "created_at": "2026-01-15T09:00:00Z",
+      "updated_at": "2026-01-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "rooms.room",
+    "pk": 3,
+    "fields": {
+      "name": "Salle C — Focus",
+      "capacity": 4,
+      "description": "Petite salle pour travail concentré",
+      "is_active": true,
+      "equipment": [
+        2,
+        4,
+        5
+      ],
+      "room_type": 3,
+      "created_at": "2026-01-15T09:00:00Z",
+      "updated_at": "2026-01-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "rooms.room",
+    "pk": 4,
+    "fields": {
+      "name": "Salle D — Inactive",
+      "capacity": 10,
+      "description": "Salle en maintenance",
+      "is_active": false,
+      "equipment": [
+        1
+      ],
+      "room_type": 1,
+      "created_at": "2026-01-15T09:00:00Z",
+      "updated_at": "2026-01-15T09:00:00Z"
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 1,
+    "fields": {
+      "room": 1,
+      "day_of_week": 0,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 2,
+    "fields": {
+      "room": 1,
+      "day_of_week": 1,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 3,
+    "fields": {
+      "room": 1,
+      "day_of_week": 2,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 4,
+    "fields": {
+      "room": 1,
+      "day_of_week": 3,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 5,
+    "fields": {
+      "room": 1,
+      "day_of_week": 4,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 6,
+    "fields": {
+      "room": 1,
+      "day_of_week": 5,
+      "open_time": "08:00:00",
+      "close_time": "12:00:00",
+      "is_closed": false
+    }
+  },
+  {
+    "model": "rooms.roomavailability",
+    "pk": 7,
+    "fields": {
+      "room": 1,
+      "day_of_week": 6,
+      "open_time": "08:00:00",
+      "close_time": "18:00:00",
+      "is_closed": true
+    }
+  }
+]

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}{{ room.name }} — RoomBooking{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-building"></i> {{ room.name }}</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong><i class="bi bi-people"></i> Capacité :</strong> {{ room.capacity }} personnes</p>
+                        <p><strong><i class="bi bi-tags"></i> Type :</strong> {% if room.room_type %}<span class="badge bg-primary">{{ room.room_type.name }}</span>{% else %}<span class="text-muted">Non défini</span>{% endif %}</p>
+                        <p><strong><i class="bi bi-check-circle"></i> Statut :</strong> {% if room.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong><i class="bi bi-tools"></i> Équipements :</strong></p>
+                        {% for eq in room.equipment.all %}
+                        <span class="badge bg-light text-dark border me-1"><i class="bi {{ eq.icon|default:'bi-check2' }}"></i> {{ eq.name }}</span>
+                        {% empty %}<span class="text-muted">Aucun</span>{% endfor %}
+                    </div>
+                </div>
+                <hr>
+                <p class="text-muted">{{ room.description|default:"Aucune description." }}</p>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'rooms:room_list' %}" class="btn btn-outline-secondary">Retour</a>
+                    {% if user.is_admin %}
+                    <a href="{% url 'rooms:room_update' room.pk %}" class="btn btn-warning">Modifier</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

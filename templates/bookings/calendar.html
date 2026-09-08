@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Calendrier — RoomBooking{% endblock %}
+
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
+<style>
+    .hero-banner {
+        background: linear-gradient(135deg, #3b82f6 0%, #6366f1 60%, #8b5cf6 100%);
+        border-radius: 16px;
+        padding: 28px 32px;
+        color: #fff;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 30px rgba(59,130,246,0.25);
+    }
+    .hero-banner h2 { font-weight: 700; margin-bottom: 4px; }
+    .hero-banner p { opacity: 0.9; margin-bottom: 0; }
+    .quick-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
+    .quick-stat-card {
+        background: rgba(255,255,255,0.15);
+        border-radius: 10px;
+        padding: 10px 16px;
+        backdrop-filter: blur(4px);
+        min-width: 140px;
+    }
+    .quick-stat-card .stat-value { font-size: 1.4rem; font-weight: 700; line-height: 1; }
+    .quick-stat-card .stat-label { font-size: 0.78rem; opacity: 0.9; }
+    #calendar { min-height: 70vh; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .fc-event { cursor: pointer; border-radius: 6px; padding: 2px 6px; font-size: 13px; }
+    .fc-event:hover { opacity: 0.9; transform: scale(1.01); transition: all 0.15s ease; }
+    .fc-toolbar-title { font-weight: 700; color: #1e293b; }
+    .fc-button-primary { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
+    .fc-button-primary:hover { background-color: #2563eb !important; }
+    .room-filter-bar { background: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .urgency-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: #475569; }
+    .urgency-legend .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-banner">
+    <h2><i class="bi bi-calendar3-week"></i> Bienvenue sur RoomBooking</h2>
+    <p>Réservez une salle de réunion en quelques clics et suivez toutes les réservations en temps réel.</p>
+    <div class="quick-stats">
+        <div class="quick-stat-card">
+            <div class="stat-value">{{ rooms.count }}</div>
+            <div class="stat-label"><i class="bi bi-building"></i> Salles disponibles</div>
+        </div>
+        <div class="quick-stat-card">
+            <div class="stat-value">{{ month_name }} {{ year }}</div>
+            <div class="stat-label"><i class="bi bi-calendar-event"></i> Période affichée</div>
+        </div>
+        <a href="{% url 'bookings:booking_create' %}" class="quick-stat-card text-white text-decoration-none d-flex align-items-center justify-content-center">
+            <div class="stat-label fs-6"><i class="bi bi-plus-circle"></i> Nouvelle réservation</div>
+        </a>
+    </div>
+</div>
+
+<div class="room-filter-bar d-flex gap-3 align-items-center flex-wrap justify-content-between">
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+        <label class="fw-semibold text-muted mb-0"><i class="bi bi-funnel"></i> Filtrer par salle :</label>
+        <select id="roomFilter" class="form-select" style="width: 220px;">
+            <option value="">Toutes les salles</option>
+            {% for room in rooms %}<option value="{{ room.id }}">{{ room.name }} ({{ room.capacity }} pers.)</option>{% endfor %}
+        </select>
+    </div>
+    <div class="urgency-legend">
+        <span><span class="legend-dot" style="background:#ef4444;"></span>Imminent (&lt; 24h)</span>
+        <span><span class="legend-dot" style="background:#f1c40f;"></span>Proche (&lt; 3 jours)</span>
+        <span><span class="legend-dot" style="background:#87ceeb;"></span>Lointain</span>
+    </div>
+</div>
+
+<div id="calendar"></div>
+
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar-event"></i> Détails de la réservation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong><i class="bi bi-tag"></i> Motif :</strong> <span id="modalTitle"></span></p>
+                <p><strong><i class="bi bi-building"></i> Salle :</strong> <span id="modalRoom"></span></p>
+                <p><strong><i class="bi bi-layers"></i> Étage :</strong> <span id="modalFloor"></span></p>
+                <p><strong><i class="bi bi-person"></i> Réservé par :</strong> <span id="modalUser"></span></p>
+                <p><strong><i class="bi bi-clock"></i> Début :</strong> <span id="modalStart"></span></p>
+                <p><strong><i class="bi bi-clock-history"></i> Fin :</strong> <span id="modalEnd"></span></p>
+                <p><strong><i class="bi bi-people"></i> Capacité :</strong> <span id="modalCapacity"></span> personnes</p>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="modalDetailLink" class="btn btn-primary">Voir la fiche complète</a>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/fr.global.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var roomFilter = document.getElementById('roomFilter');
+    var modal = new bootstrap.Modal(document.getElementById('bookingModal'));
+    // Gabarit d'URL généré par Django (au lieu d'un '/bookings/' + id + '/' codé en dur,
+    // qui ne correspondait pas au vrai préfixe des URLs de l'app bookings et menait à un 404).
+    var bookingDetailUrlTemplate = "{% url 'bookings:booking_detail' pk=999999999 %}";
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'fr',
+        initialView: 'dayGridMonth',
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+        buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', day: 'Jour', list: 'Liste' },
+        height: 'auto',
+        slotMinTime: '07:00:00',
+        slotMaxTime: '21:00:00',
+        allDaySlot: false,
+        nowIndicator: true,
+        eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+        eventSources: [{
+            url: '{% url "bookings:api_bookings" %}',
+            extraParams: function() { return { room: roomFilter.value }; },
+            failure: function() { showToast('Erreur lors du chargement des événements', 'danger'); }
+        }],
+        eventClick: function(info) {
+            var props = info.event.extendedProps;
+            document.getElementById('modalTitle').textContent = info.event.title.split(' — ')[0];
+            document.getElementById('modalRoom').textContent = props.room;
+            document.getElementById('modalFloor').textContent = props.floor;
+            document.getElementById('modalUser').textContent = props.user;
+            document.getElementById('modalStart').textContent = new Date(info.event.start).toLocaleString('fr-FR');
+            document.getElementById('modalEnd').textContent = new Date(info.event.end).toLocaleString('fr-FR');
+            document.getElementById('modalCapacity').textContent = props.capacity;
+            document.getElementById('modalDetailLink').href = bookingDetailUrlTemplate.replace('999999999', info.event.id);
+            modal.show();
+        },
+        loading: function(isLoading) { calendarEl.style.opacity = isLoading ? '0.6' : '1'; }
+    });
+    calendar.render();
+    roomFilter.addEventListener('change', function() { calendar.refetchEvents(); });
+});
+</script>
+{% endblock %}
