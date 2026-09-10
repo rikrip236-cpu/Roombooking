@@ -45,16 +45,11 @@
                 {% endif %}
                 <hr>
                 <div class="d-flex gap-2">
-                    {% if user.is_admin or booking.user == user %}
                     {% if booking.status == 'confirmed' %}
                     <a href="{% url 'bookings:booking_update' booking.pk %}" class="btn btn-warning">Modifier</a>
                     {% if not booking.is_past %}
                     <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-danger">Annuler la réservation</a>
                     {% endif %}
-                    {% endif %}
-                    {% endif %}
-                    {% if user.is_admin %}
-                    <a href="{% url 'bookings:booking_delete' booking.pk %}" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Supprimer définitivement</a>
                     {% endif %}
                     <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary">Retour</a>
                 </div>

@@ -81,11 +81,8 @@
                     {% if booking.status == 'confirmed' %}
                     <a href="{% url 'bookings:booking_update' booking.pk %}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
                     {% if not booking.is_past %}
-                    <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-sm btn-outline-danger" title="Annuler"><i class="bi bi-x-circle"></i></a>
+                    <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i></a>
                     {% endif %}
-                    {% endif %}
-                    {% if user.is_admin %}
-                    <a href="{% url 'bookings:booking_delete' booking.pk %}" class="btn btn-sm btn-danger" title="Supprimer définitivement"><i class="bi bi-trash"></i></a>
                     {% endif %}
                 </td>
             </tr>

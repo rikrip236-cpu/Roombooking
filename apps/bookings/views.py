@@ -99,19 +99,14 @@ class BookingUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return super().form_valid(form)
 
 
-class BookingDetailView(LoginRequiredMixin, DetailView):
-    # Le calendrier affiche déjà les réservations de tout le monde à tout
-    # utilisateur connecté (voir CalendarView / api_bookings_json, qui ne
-    # filtrent pas par utilisateur). Restreindre la fiche détaillée au seul
-    # propriétaire/admin provoquait donc une erreur 403 dès qu'un utilisateur
-    # cliquait sur "Voir la fiche complète" pour une réservation d'un
-    # collègue. On aligne l'accès en lecture sur ce que montre déjà le
-    # calendrier : tout utilisateur connecté peut consulter la fiche.
-    # Modifier/annuler restent réservés au propriétaire ou à l'admin
-    # (cf. BookingUpdateView / BookingCancelView ci-dessous).
+class BookingDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     model = Booking
     template_name = 'bookings/booking_detail.html'
     context_object_name = 'booking'
+
+    def test_func(self):
+        booking = self.get_object()
+        return self.request.user.is_admin() or self.request.user == booking.user
 
 
 class BookingCancelView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -145,24 +140,6 @@ class BookingCancelView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         self.object.cancel(self.request.user)
         messages.success(self.request, 'Réservation annulée.')
         return redirect(self.get_success_url())
-
-
-class BookingDeleteView(LoginRequiredMixin, AdminRequiredMixin, DeleteView):
-    # Contrairement à BookingCancelView (qui ne fait que passer le statut à
-    # 'cancelled'), cette vue supprime réellement l'enregistrement en base.
-    # Réservée à l'administrateur.
-    #
-    # Comme pour BookingCancelView : depuis Django 4.0, DeleteView.post()
-    # passe par form_valid() et non plus par delete(), donc c'est bien
-    # form_valid() qu'il faut surcharger pour que le message de succès
-    # s'affiche (surcharger delete() ici ne serait jamais exécuté au POST).
-    model = Booking
-    template_name = 'bookings/booking_confirm_delete.html'
-    success_url = reverse_lazy('bookings:booking_list')
-
-    def form_valid(self, form):
-        messages.success(self.request, 'Réservation supprimée définitivement.')
-        return super().form_valid(form)
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):

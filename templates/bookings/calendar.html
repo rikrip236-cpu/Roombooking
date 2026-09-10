@@ -33,6 +33,48 @@
     .room-filter-bar { background: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .urgency-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: #475569; }
     .urgency-legend .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    /* ===== Responsive : tablette (≤ 991px) ===== */
+    @media (max-width: 991.98px) {
+        .hero-banner { padding: 20px 22px; }
+        .quick-stats { gap: 10px; }
+        .quick-stat-card { min-width: 120px; padding: 8px 12px; }
+        .quick-stat-card .stat-value { font-size: 1.15rem; }
+        #calendar { padding: 10px; min-height: 60vh; }
+        .fc-toolbar-title { font-size: 1.1rem !important; }
+    }
+
+    /* ===== Responsive : mobile (≤ 575px) ===== */
+    @media (max-width: 575.98px) {
+        .hero-banner { padding: 16px 18px; border-radius: 12px; }
+        .hero-banner h2 { font-size: 1.25rem; }
+        .hero-banner p { font-size: 0.85rem; }
+        .quick-stats { flex-direction: column; }
+        .quick-stat-card { width: 100%; min-width: 0; }
+
+        .room-filter-bar { flex-direction: column; align-items: stretch !important; padding: 10px 12px; }
+        .room-filter-bar #roomFilter { width: 100% !important; }
+        .urgency-legend { justify-content: center; font-size: 0.72rem; gap: 10px; }
+
+        #calendar { padding: 6px; border-radius: 8px; min-height: 65vh; }
+
+        /* Toolbar FullCalendar empilée verticalement, boutons plus grands (tactile) */
+        .fc-header-toolbar { flex-direction: column; gap: 8px !important; margin-bottom: 10px !important; }
+        .fc-toolbar-chunk { display: flex; justify-content: center; width: 100%; }
+        .fc-toolbar-title { font-size: 1rem !important; }
+        .fc-button { padding: 6px 10px !important; font-size: 0.8rem !important; }
+        .fc-today-button { text-transform: capitalize; }
+
+        /* Grille du mois : cellules plus compactes et texte réduit pour tenir sur petit écran */
+        .fc-daygrid-day-number { font-size: 0.75rem; padding: 2px 4px !important; }
+        .fc-col-header-cell-cushion { font-size: 0.72rem; }
+        .fc-event { font-size: 11px; padding: 1px 3px; }
+        .fc-daygrid-event-dot { display: none; }
+
+        /* Modale plein écran sur mobile pour une meilleure lisibilité */
+        #bookingModal .modal-dialog { margin: 0.5rem; }
+        #bookingModal .modal-body p { font-size: 0.9rem; }
+    }
 </style>
 {% endblock %}
 
@@ -108,12 +150,28 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gabarit d'URL généré par Django (au lieu d'un '/bookings/' + id + '/' codé en dur,
     // qui ne correspondait pas au vrai préfixe des URLs de l'app bookings et menait à un 404).
     var bookingDetailUrlTemplate = "{% url 'bookings:booking_detail' pk=999999999 %}";
+
+    // Détection mobile : sur petit écran on démarre en vue "Liste" (plus lisible
+    // qu'une grille mensuelle compressée) et on simplifie la barre d'outils.
+    var isMobile = window.matchMedia('(max-width: 575px)').matches;
+    var isTablet = window.matchMedia('(max-width: 991px)').matches;
+
+    var headerToolbar = isMobile
+        ? { left: 'prev,next', center: 'title', right: 'today' }
+        : isTablet
+            ? { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' }
+            : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' };
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
         locale: 'fr',
-        initialView: 'dayGridMonth',
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek' },
+        initialView: isMobile ? 'listWeek' : 'dayGridMonth',
+        headerToolbar: headerToolbar,
+        footerToolbar: isMobile ? { center: 'dayGridMonth,timeGridWeek,listWeek' } : false,
         buttonText: { today: "Aujourd'hui", month: 'Mois', week: 'Semaine', day: 'Jour', list: 'Liste' },
         height: 'auto',
+        contentHeight: isMobile ? 'auto' : undefined,
+        aspectRatio: isMobile ? 0.85 : 1.6,
+        dayMaxEventRows: isMobile ? 2 : true,
         slotMinTime: '07:00:00',
         slotMaxTime: '21:00:00',
         allDaySlot: false,
@@ -135,6 +193,16 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('modalCapacity').textContent = props.capacity;
             document.getElementById('modalDetailLink').href = bookingDetailUrlTemplate.replace('999999999', info.event.id);
             modal.show();
+        },
+        windowResize: function(view) {
+            // Bascule automatique de vue si l'utilisateur redimensionne la fenêtre
+            // ou tourne son téléphone (portrait/paysage).
+            var nowMobile = window.matchMedia('(max-width: 575px)').matches;
+            if (nowMobile && view.type !== 'listWeek') {
+                calendar.changeView('listWeek');
+            } else if (!nowMobile && view.type === 'listWeek' && isMobile) {
+                calendar.changeView('dayGridMonth');
+            }
         },
         loading: function(isLoading) { calendarEl.style.opacity = isLoading ? '0.6' : '1'; }
     });

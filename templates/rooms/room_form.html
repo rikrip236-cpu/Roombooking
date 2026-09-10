@@ -5,21 +5,34 @@
     <div class="col-md-8">
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">{% if object %}Modifier{% else %}Nouvelle{% endif %} salle</h4>
+                <h4 class="mb-0"><i class="bi bi-building"></i> {% if object %}Modifier{% else %}Nouvelle{% endif %} salle</h4>
             </div>
             <div class="card-body p-4">
+                <p class="text-muted small mb-4">
+                    <i class="bi bi-info-circle"></i> En tant qu'administrateur, définissez ici la capacité d'accueil
+                    et le matériel présent dans cette salle. Ces informations seront visibles par tous les
+                    utilisateurs lors de leurs réservations.
+                </p>
                 <form method="post">
                     {% csrf_token %}
                     {% for field in form %}
-                    <div class="mb-3">
+                    <div class="mb-4">
                         {% if field.name == 'is_active' %}
-                        <div class="form-check">
+                        <div class="form-check form-switch">
                             {{ field }}
                             <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
                         </div>
+                        {% elif field.name == 'capacity' %}
+                        <label class="form-label fw-semibold"><i class="bi bi-people-fill text-primary"></i> {{ field.label }}</label>
+                        <div class="input-group" style="max-width: 220px;">
+                            {{ field }}
+                            <span class="input-group-text">personnes</span>
+                        </div>
+                        <div class="form-text">Nombre maximal de personnes que peut accueillir cette salle.</div>
                         {% elif field.name == 'equipment' %}
-                        <label class="form-label">{{ field.label }}</label>
-                        <div class="row row-cols-2 row-cols-md-3 g-2">
+                        <label class="form-label fw-semibold"><i class="bi bi-tools text-primary"></i> {{ field.label }}</label>
+                        <div class="form-text mb-2">Cochez le matériel physiquement présent dans cette salle.</div>
+                        <div class="row row-cols-2 row-cols-md-3 g-2 p-3 bg-light rounded border">
                             {% for choice in field %}
                             <div class="col">
                                 <div class="form-check">
@@ -27,17 +40,21 @@
                                     <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
                                 </div>
                             </div>
+                            {% empty %}
+                            <div class="col-12 text-muted small">
+                                Aucun équipement défini. <a href="{% url 'rooms:equipment_create' %}">Créez-en un</a> d'abord.
+                            </div>
                             {% endfor %}
                         </div>
                         {% else %}
-                        <label class="form-label">{{ field.label }}</label>
+                        <label class="form-label fw-semibold">{{ field.label }}</label>
                         {{ field }}
                         {% endif %}
                         {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     {% endfor %}
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Enregistrer</button>
                         <a href="{% url 'rooms:room_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Retour</a>
                     </div>
                 </form>
