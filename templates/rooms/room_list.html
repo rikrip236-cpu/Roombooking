@@ -46,6 +46,7 @@
                 <p class="card-text text-muted">{{ room.description|truncatewords:15|default:"Aucune description" }}</p>
                 <div class="mb-2">
                     <span class="badge bg-info"><i class="bi bi-people"></i> {{ room.capacity }} pers.</span>
+                    <span class="badge bg-primary"><i class="bi bi-layers"></i> {{ room.get_floor_display }}</span>
                     {% for eq in room.equipment.all %}<span class="badge bg-light text-dark border"><i class="bi {{ eq.icon|default:'bi-check2' }}"></i> {{ eq.name }}</span>{% endfor %}
                 </div>
             </div>

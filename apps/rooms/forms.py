@@ -33,9 +33,16 @@ EQUIPMENT_ICON_CHOICES = [
 
 
 class RoomForm(forms.ModelForm):
+    floor = forms.TypedChoiceField(
+        coerce=int,
+        label='Étage',
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text="Étage du bâtiment où se trouve cette salle."
+    )
+
     class Meta:
         model = Room
-        fields = ['name', 'room_type', 'capacity', 'description', 'equipment', 'is_active']
+        fields = ['name', 'room_type', 'capacity', 'floor', 'description', 'equipment', 'is_active']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'room_type': forms.Select(attrs={'class': 'form-select'}),
@@ -44,6 +51,16 @@ class RoomForm(forms.ModelForm):
             'equipment': forms.CheckboxSelectMultiple(),
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Liste des étages proposée dynamiquement selon le nombre d'étages
+        # défini par l'administrateur (BuildingSettings), comme pour le
+        # formulaire de réservation.
+        building_settings = BuildingSettings.load()
+        self.fields['floor'].choices = building_settings.floor_choices()
+        if self.instance and self.instance.pk:
+            self.fields['floor'].initial = self.instance.floor
 
     def clean_capacity(self):
         capacity = self.cleaned_data.get('capacity')

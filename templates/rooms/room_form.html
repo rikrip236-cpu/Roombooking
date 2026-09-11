@@ -29,6 +29,10 @@
                             <span class="input-group-text">personnes</span>
                         </div>
                         <div class="form-text">Nombre maximal de personnes que peut accueillir cette salle.</div>
+                        {% elif field.name == 'floor' %}
+                        <label class="form-label fw-semibold"><i class="bi bi-layers text-primary"></i> {{ field.label }}</label>
+                        <div style="max-width: 260px;">{{ field }}</div>
+                        <div class="form-text">{{ field.help_text }}</div>
                         {% elif field.name == 'equipment' %}
                         <label class="form-label fw-semibold"><i class="bi bi-tools text-primary"></i> {{ field.label }}</label>
                         <div class="form-text mb-2">Cochez le matériel physiquement présent dans cette salle.</div>

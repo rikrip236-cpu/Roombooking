@@ -8,10 +8,32 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime, parse_date
 from datetime import datetime, timedelta
 import calendar
+import json
 
 from .models import Booking
 from .forms import BookingForm
 from apps.rooms.models import Room
+
+
+def _rooms_info_json():
+    """Construit le mapping {room_id: {equipment: [...], capacity, floor}} pour
+    chaque salle active. Utilisé par le formulaire de réservation pour :
+    - afficher automatiquement, en lecture seule, le matériel déjà présent
+      dans la salle sélectionnée (défini par l'admin) ;
+    - afficher la capacité maximale de la salle à côté du nombre de personnes ;
+    - afficher l'étage où se trouve la salle, en complément de l'étage de
+      réunion choisi par l'utilisateur."""
+    data = {}
+    for room in Room.objects.filter(is_active=True).prefetch_related('equipment'):
+        data[room.id] = {
+            'equipment': [
+                {'name': eq.name, 'icon': eq.icon or 'bi-check2'}
+                for eq in room.equipment.all()
+            ],
+            'capacity': room.capacity,
+            'floor': room.get_floor_display(),
+        }
+    return json.dumps(data)
 
 
 class AdminRequiredMixin(UserPassesTestMixin):
@@ -60,6 +82,11 @@ class BookingCreateView(LoginRequiredMixin, CreateView):
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['rooms_info_json'] = _rooms_info_json()
+        return context
+
     def form_valid(self, form):
         messages.success(self.request, 'Réservation créée avec succès.')
         return super().form_valid(form)
@@ -94,19 +121,25 @@ class BookingUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         kwargs['user'] = self.request.user
         return kwargs
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['rooms_info_json'] = _rooms_info_json()
+        return context
+
     def form_valid(self, form):
         messages.success(self.request, 'Réservation modifiée avec succès.')
         return super().form_valid(form)
 
 
-class BookingDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+class BookingDetailView(LoginRequiredMixin, DetailView):
+    """Fiche de détail d'une réservation. Accessible en lecture à tout
+    utilisateur connecté (les réservations apparaissent sur le calendrier
+    partagé, donc leurs détails doivent rester consultables par tous).
+    Seuls l'administrateur et le propriétaire de la réservation voient les
+    actions de modification/annulation (gérées dans le template)."""
     model = Booking
     template_name = 'bookings/booking_detail.html'
     context_object_name = 'booking'
-
-    def test_func(self):
-        booking = self.get_object()
-        return self.request.user.is_admin() or self.request.user == booking.user
 
 
 class BookingCancelView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):

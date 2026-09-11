@@ -8,7 +8,7 @@ from .models import User
 class UserAdmin(BaseUserAdmin):
     list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'department', 'floor', 'is_active']
     list_filter = ['role', 'is_active', 'is_staff', 'department', 'floor']
-    search_fields = ['username', 'email', 'first_name', 'last_name', 'department', 'floor']
+    search_fields = ['username', 'email', 'first_name', 'last_name', 'department']
     ordering = ['username']
 
     fieldsets = BaseUserAdmin.fieldsets + (

@@ -14,9 +14,22 @@
                 {% endif %}
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mb-3">
-                        <label class="form-label">Salle</label>{{ form.room }}
-                        {% for error in form.room.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                    <div class="row">
+                        <div class="col-md-7 mb-3">
+                            <label class="form-label">Salle</label>{{ form.room }}
+                            {% for error in form.room.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label"><i class="bi bi-layers"></i> {{ form.floor.label }}</label>
+                            {{ form.floor }}
+                            <div class="form-text" id="floorHint">{{ form.floor.help_text }}</div>
+                            {% for error in form.floor.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                        </div>
+                    </div>
+                    <div class="mb-3" id="roomEquipmentBlock" style="display:none;">
+                        <label class="form-label"><i class="bi bi-box-seam"></i> Matériel déjà présent dans cette salle</label>
+                        <div class="border rounded p-2 bg-light" id="roomEquipmentList"></div>
+                        <div class="form-text">Matériel fixe de la salle, défini par l'administrateur (non modifiable ici).</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Motif de la réunion</label>{{ form.title }}
@@ -37,14 +50,12 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-layers"></i> {{ form.floor.label }}</label>
-                        {{ form.floor }}
-                        <div class="form-text">{{ form.floor.help_text }}</div>
-                        {% for error in form.floor.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label"><i class="bi bi-people"></i> Nombre de personnes</label>
-                        {{ form.attendees_count }}
+                        <div class="input-group" style="max-width: 260px;">
+                            {{ form.attendees_count }}
+                            <span class="input-group-text" id="capacityHint">personnes</span>
+                        </div>
+                        <div class="form-text" id="capacityText">Sélectionnez d'abord une salle pour connaître sa capacité.</div>
                         {% for error in form.attendees_count.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="mb-3">
@@ -76,4 +87,67 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Infos de chaque salle (matériel, capacité, étage), injectées par la vue
+    // en JSON : { "<room_id>": {equipment: [{name, icon}, ...], capacity, floor}, ... }
+    var roomsInfo = {{ rooms_info_json|default:"{}"|safe }};
+    var roomSelect = document.getElementById('{{ form.room.id_for_label }}');
+    var equipBlock = document.getElementById('roomEquipmentBlock');
+    var equipList = document.getElementById('roomEquipmentList');
+    var floorHint = document.getElementById('floorHint');
+    var capacityInput = document.getElementById('{{ form.attendees_count.id_for_label }}');
+    var capacityText = document.getElementById('capacityText');
+    var defaultFloorHelp = "{{ form.floor.help_text|escapejs }}";
+
+    function renderRoomInfo() {
+        var roomId = roomSelect.value;
+        var info = roomsInfo[roomId];
+
+        // 1) Matériel déjà présent dans la salle, affiché en lecture seule.
+        if (!roomId || !info) {
+            equipBlock.style.display = 'none';
+            equipList.innerHTML = '';
+        } else if (info.equipment.length === 0) {
+            equipList.innerHTML = '<span class="text-muted small">Aucun matériel enregistré pour cette salle.</span>';
+            equipBlock.style.display = 'block';
+        } else {
+            equipList.innerHTML = info.equipment.map(function(eq) {
+                // Badges en lecture seule : le matériel de la salle n'est pas
+                // à cocher, il s'affiche simplement (contrairement au
+                // "Matériel demandé" ci-dessous qui reste modifiable).
+                return '<span class="badge bg-secondary-subtle text-dark border me-1 mb-1 p-2">' +
+                       '<i class="bi ' + eq.icon + '"></i> ' + eq.name + '</span>';
+            }).join('');
+            equipBlock.style.display = 'block';
+        }
+
+        // 2) Étage de la salle sélectionnée, rappelé sous le sélecteur d'étage
+        //    de réunion pour que l'utilisateur comprenne le lien entre les deux.
+        if (roomId && info) {
+            floorHint.innerHTML = '<i class="bi bi-info-circle"></i> Cette salle se trouve à : <strong>' + info.floor + '</strong>';
+        } else {
+            floorHint.textContent = defaultFloorHelp;
+        }
+
+        // 3) Capacité maximale de la salle, affichée à côté du nombre de
+        //    personnes pour éviter toute saisie hors limite.
+        if (roomId && info) {
+            capacityText.innerHTML = '<i class="bi bi-people-fill"></i> Capacité maximale de cette salle : <strong>' + info.capacity + ' personne' + (info.capacity > 1 ? 's' : '') + ' maximum</strong>.';
+            capacityInput.setAttribute('max', info.capacity);
+        } else {
+            capacityText.textContent = "Sélectionnez d'abord une salle pour connaître sa capacité.";
+            capacityInput.removeAttribute('max');
+        }
+    }
+
+    if (roomSelect) {
+        roomSelect.addEventListener('change', renderRoomInfo);
+        renderRoomInfo();
+    }
+});
+</script>
 {% endblock %}

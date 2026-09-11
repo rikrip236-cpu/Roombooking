@@ -98,6 +98,11 @@ class Room(models.Model):
         verbose_name='Type de salle'
     )
     capacity = models.PositiveIntegerField(verbose_name='Capacité')
+    floor = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name='Étage',
+        help_text="Étage du bâtiment où se trouve cette salle (0 = rez-de-chaussée)."
+    )
     description = models.TextField(blank=True, verbose_name='Description')
     equipment = models.ManyToManyField(
         Equipment,
@@ -116,6 +121,13 @@ class Room(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.capacity} pers.)"
+
+    def get_floor_display(self):
+        """Libellé lisible de l'étage de la salle (ex: 'Rez-de-chaussée',
+        'Étage 2'), basé sur les paramètres du bâtiment définis par l'admin."""
+        settings_obj = BuildingSettings.load()
+        choices = dict(settings_obj.floor_choices())
+        return choices.get(self.floor, f'Étage {self.floor}')
 
 
 class RoomAvailability(models.Model):

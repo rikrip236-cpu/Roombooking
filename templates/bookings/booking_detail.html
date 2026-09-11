@@ -15,8 +15,8 @@
                         <p><strong><i class="bi bi-layers"></i> Étage de la réunion :</strong> <span class="badge bg-primary">{{ booking.get_floor_display }}</span></p>
                         <p><strong><i class="bi bi-people"></i> Capacité de la salle :</strong> {{ booking.room.capacity }} personnes</p>
                         <p><strong><i class="bi bi-person"></i> Réservé par :</strong> {{ booking.user.get_full_name|default:booking.user.username }}</p>
-                        {% if booking.user.floor %}
-                        <p><strong><i class="bi bi-person-lines-fill"></i> Étage de l'utilisateur :</strong> {{ booking.user.floor }}</p>
+                        {% if booking.user.floor is not None %}
+                        <p><strong><i class="bi bi-person-lines-fill"></i> Étage de l'utilisateur :</strong> {{ booking.user.get_floor_display }}</p>
                         {% endif %}
                     </div>
                     <div class="col-md-6">
@@ -46,10 +46,12 @@
                 <hr>
                 <div class="d-flex gap-2">
                     {% if booking.status == 'confirmed' %}
-                    <a href="{% url 'bookings:booking_update' booking.pk %}" class="btn btn-warning">Modifier</a>
-                    {% if not booking.is_past %}
-                    <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-danger">Annuler la réservation</a>
-                    {% endif %}
+                        {% if user.is_admin or user == booking.user %}
+                        <a href="{% url 'bookings:booking_update' booking.pk %}" class="btn btn-warning">Modifier</a>
+                        {% if not booking.is_past %}
+                        <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-danger">Annuler la réservation</a>
+                        {% endif %}
+                        {% endif %}
                     {% endif %}
                     <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary">Retour</a>
                 </div>
