@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import datetime
 
 from .models import Booking
-from apps.rooms.models import Room, RoomAvailability, Equipment, BuildingSettings
+from apps.rooms.models import Room, RoomAvailability, BuildingSettings
 
 
 class BookingForm(forms.ModelForm):
@@ -20,24 +20,19 @@ class BookingForm(forms.ModelForm):
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
         label='Heure de fin'
     )
-    requested_equipment = forms.ModelMultipleChoiceField(
-        queryset=Equipment.objects.all(),
-        required=False,
-        widget=forms.CheckboxSelectMultiple,
-        label='Matériel demandé'
-    )
     floor = forms.TypedChoiceField(
         coerce=int,
+        required=False,
         label='Étage de la réunion',
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        help_text="Sélectionnez l'étage où se tiendra la réunion."
+        widget=forms.Select(attrs={'class': 'form-select', 'disabled': 'disabled'}),
+        help_text="Déterminé automatiquement par l'étage de la salle choisie."
     )
 
     class Meta:
         model = Booking
         fields = [
             'room', 'title', 'date', 'start_time', 'end_time', 'floor',
-            'attendees_count', 'requested_equipment', 'responsible_person',
+            'attendees_count', 'responsible_person',
         ]
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex : Réunion équipe projet'}),
@@ -45,7 +40,7 @@ class BookingForm(forms.ModelForm):
             'attendees_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'responsible_person': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Nom de la personne responsable du matériel'
+                'placeholder': 'Nom de la personne responsable de la réunion'
             }),
         }
 
@@ -86,6 +81,14 @@ class BookingForm(forms.ModelForm):
             raise ValidationError(
                 f'Cette salle ne peut accueillir que {room.capacity} personne(s) maximum.'
             )
+
+        # L'étage de la réunion suit automatiquement l'étage réel de la salle
+        # choisie : le champ est affiché en lecture seule côté formulaire,
+        # mais on force ici la valeur cohérente indépendamment de ce que le
+        # navigateur aurait pu soumettre.
+        if room:
+            cleaned_data['floor'] = room.floor
+            self.instance.floor = room.floor
 
         if self.instance.pk and self.instance.is_past:
             # Réservation passée : on n'autorise pas de changement d'horaire/salle.

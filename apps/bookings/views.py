@@ -16,13 +16,15 @@ from apps.rooms.models import Room
 
 
 def _rooms_info_json():
-    """Construit le mapping {room_id: {equipment: [...], capacity, floor}} pour
-    chaque salle active. Utilisé par le formulaire de réservation pour :
+    """Construit le mapping {room_id: {equipment: [...], capacity, floor,
+    floor_value}} pour chaque salle active. Utilisé par le formulaire de
+    réservation pour :
     - afficher automatiquement, en lecture seule, le matériel déjà présent
       dans la salle sélectionnée (défini par l'admin) ;
     - afficher la capacité maximale de la salle à côté du nombre de personnes ;
-    - afficher l'étage où se trouve la salle, en complément de l'étage de
-      réunion choisi par l'utilisateur."""
+    - positionner automatiquement le champ "Étage de la réunion" sur l'étage
+      réel de la salle choisie (floor_value = valeur numérique du <select>,
+      floor = libellé lisible affiché à l'utilisateur)."""
     data = {}
     for room in Room.objects.filter(is_active=True).prefetch_related('equipment'):
         data[room.id] = {
@@ -32,6 +34,7 @@ def _rooms_info_json():
             ],
             'capacity': room.capacity,
             'floor': room.get_floor_display(),
+            'floor_value': room.floor,
         }
     return json.dumps(data)
 
@@ -173,6 +176,26 @@ class BookingCancelView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         self.object.cancel(self.request.user)
         messages.success(self.request, 'Réservation annulée.')
         return redirect(self.get_success_url())
+
+
+class BookingDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """Suppression DÉFINITIVE d'une réservation (contrairement à
+    BookingCancelView, qui ne fait qu'un soft-delete via le statut
+    'cancelled'). Accessible à l'administrateur, ou à l'utilisateur sur ses
+    propres réservations — y compris déjà annulées ou passées, pour lui
+    permettre de faire le ménage dans son historique."""
+    model = Booking
+    template_name = 'bookings/booking_delete.html'
+    success_url = reverse_lazy('bookings:booking_list')
+    context_object_name = 'booking'
+
+    def test_func(self):
+        booking = self.get_object()
+        return self.request.user.is_admin() or self.request.user == booking.user
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Réservation supprimée définitivement.')
+        return super().form_valid(form)
 
 
 class CalendarView(LoginRequiredMixin, TemplateView):

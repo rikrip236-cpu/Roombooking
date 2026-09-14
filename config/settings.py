@@ -31,6 +31,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'apps.accounts.middleware.TimezoneDisplayMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -106,9 +107,26 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'fr-fr'
-TIME_ZONE = 'Europe/Paris'
+# TIME_ZONE reste en UTC pour la BASE DE DONNÉES : c'est volontaire.
+# Avec USE_TZ=True, Django stocke toujours les dates en UTC dans la base et
+# les convertit à l'affichage/saisie selon TIME_ZONE_DISPLAY (ci-dessous).
+# Utiliser une TIME_ZONE non-UTC ici obligerait MySQL à faire des conversions
+# de fuseau horaire (CONVERT_TZ) qui nécessitent les tables système
+# mysql.time_zone*, absentes par défaut sur une installation Laragon/Windows.
+# Résultat sans ces tables : "ValueError: Database returned an invalid
+# datetime value. Are time zone definitions for your database installed?"
+# (notamment sur la hiérarchie de dates de l'admin Django).
+# → Garder TIME_ZONE='UTC' évite ce problème sans dépendre d'une installation
+#   MySQL supplémentaire. Voir docs/TIMEZONE_MYSQL.md pour l'alternative
+#   (installer les tables tz) si vous préférez stocker en Europe/Paris.
+TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
+
+# Fuseau horaire utilisé uniquement pour l'affichage côté application
+# (calendrier, listes, formulaires). Les dates restent stockées en UTC en
+# base ; Django les convertit à la volée pour l'affichage/la saisie.
+TIME_ZONE_DISPLAY = 'Europe/Paris'
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'

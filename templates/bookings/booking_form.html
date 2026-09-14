@@ -59,23 +59,9 @@
                         {% for error in form.attendees_count.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-tools"></i> Matériel demandé</label>
-                        <div class="border rounded p-2">
-                            {% for checkbox in form.requested_equipment %}
-                                <div class="form-check">
-                                    {{ checkbox.tag }}
-                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
-                                </div>
-                            {% empty %}
-                                <span class="text-muted small">Aucun matériel disponible pour le moment.</span>
-                            {% endfor %}
-                        </div>
-                        {% for error in form.requested_equipment.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label"><i class="bi bi-person-badge"></i> Personne en charge du matériel</label>
+                        <label class="form-label"><i class="bi bi-person-badge"></i> Personne responsable de la réunion</label>
                         {{ form.responsible_person }}
-                        <div class="form-text">Qui apporte / gère le matériel demandé (optionnel)</div>
+                        <div class="form-text">Optionnel</div>
                         {% for error in form.responsible_person.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
                     </div>
                     <div class="d-flex gap-2">
@@ -93,11 +79,12 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Infos de chaque salle (matériel, capacité, étage), injectées par la vue
-    // en JSON : { "<room_id>": {equipment: [{name, icon}, ...], capacity, floor}, ... }
+    // en JSON : { "<room_id>": {equipment: [{name, icon}, ...], capacity, floor, floor_value}, ... }
     var roomsInfo = {{ rooms_info_json|default:"{}"|safe }};
     var roomSelect = document.getElementById('{{ form.room.id_for_label }}');
     var equipBlock = document.getElementById('roomEquipmentBlock');
     var equipList = document.getElementById('roomEquipmentList');
+    var floorSelect = document.getElementById('{{ form.floor.id_for_label }}');
     var floorHint = document.getElementById('floorHint');
     var capacityInput = document.getElementById('{{ form.attendees_count.id_for_label }}');
     var capacityText = document.getElementById('capacityText');
@@ -116,20 +103,24 @@ document.addEventListener('DOMContentLoaded', function() {
             equipBlock.style.display = 'block';
         } else {
             equipList.innerHTML = info.equipment.map(function(eq) {
-                // Badges en lecture seule : le matériel de la salle n'est pas
-                // à cocher, il s'affiche simplement (contrairement au
-                // "Matériel demandé" ci-dessous qui reste modifiable).
                 return '<span class="badge bg-secondary-subtle text-dark border me-1 mb-1 p-2">' +
                        '<i class="bi ' + eq.icon + '"></i> ' + eq.name + '</span>';
             }).join('');
             equipBlock.style.display = 'block';
         }
 
-        // 2) Étage de la salle sélectionnée, rappelé sous le sélecteur d'étage
-        //    de réunion pour que l'utilisateur comprenne le lien entre les deux.
+        // 2) L'étage de la réunion se cale automatiquement sur l'étage réel
+        //    de la salle choisie. Le champ reste désactivé (lecture seule)
+        //    pour que l'utilisateur comprenne que ce n'est pas un choix
+        //    libre : il découle directement de la salle sélectionnée.
+        //    Ce champ étant "disabled", sa valeur n'est de toute façon pas
+        //    envoyée au serveur ; c'est BookingForm.clean() qui fixe la
+        //    valeur réelle côté serveur à partir de room.floor.
         if (roomId && info) {
+            floorSelect.value = String(info.floor_value);
             floorHint.innerHTML = '<i class="bi bi-info-circle"></i> Cette salle se trouve à : <strong>' + info.floor + '</strong>';
         } else {
+            floorSelect.selectedIndex = 0;
             floorHint.textContent = defaultFloorHelp;
         }
 

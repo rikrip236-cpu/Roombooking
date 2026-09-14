@@ -27,15 +27,8 @@
                     </div>
                 </div>
                 <hr>
-                <p><strong><i class="bi bi-tools"></i> Matériel demandé :</strong>
-                    {% for eq in booking.requested_equipment.all %}
-                        <span class="badge bg-info text-dark">{{ eq.name }}</span>
-                    {% empty %}
-                        <span class="text-muted">Aucun</span>
-                    {% endfor %}
-                </p>
                 {% if booking.responsible_person %}
-                <p><strong><i class="bi bi-person-badge"></i> Personne en charge du matériel :</strong> {{ booking.responsible_person }}</p>
+                <p><strong><i class="bi bi-person-badge"></i> Personne responsable :</strong> {{ booking.responsible_person }}</p>
                 {% endif %}
                 {% if booking.cancelled_at %}
                 <div class="alert alert-secondary mt-3">
@@ -52,6 +45,9 @@
                         <a href="{% url 'bookings:booking_cancel' booking.pk %}" class="btn btn-danger">Annuler la réservation</a>
                         {% endif %}
                         {% endif %}
+                    {% endif %}
+                    {% if user.is_admin or user == booking.user %}
+                    <a href="{% url 'bookings:booking_delete' booking.pk %}" class="btn btn-outline-danger"><i class="bi bi-trash3"></i> Supprimer</a>
                     {% endif %}
                     <a href="{% url 'bookings:booking_list' %}" class="btn btn-outline-secondary">Retour</a>
                 </div>
