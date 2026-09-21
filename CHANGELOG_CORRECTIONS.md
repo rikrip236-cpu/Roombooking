@@ -69,3 +69,69 @@ Ce document résume les corrections apportées à l'application par rapport à l
 
 - La logique métier de détection des conflits (`Booking._check_overlapping`) et les modèles n'ont pas été altérés dans leur comportement validé par les tests existants (`apps/*/tests.py`), qui restent compatibles avec ces changements.
 - L'architecture Docker / PostgreSQL / MySQL / SQLite reste identique.
+
+## 📅 Réservation sur plusieurs jours — horaires uniformes & affichage calendrier
+
+**Problème corrigé :** pour une réservation « longue » (plusieurs jours), les événements du calendrier formaient un seul bloc continu : l'heure de fin n'apparaissait que sur le dernier jour, donnant l'impression d'une salle occupée 24h/24. Les horaires quotidiens n'étaient donc pas lisibles.
+
+1. **Une seule plage horaire appliquée à chaque jour**
+   - `apps/bookings/models.py` : ajout de `daily_start_time()` / `daily_end_time()`, `is_multi_day`, `duration_days`, `start_local`/`end_local`. `duration_minutes` correspond désormais à la durée **par jour** (et non cumulée) pour un range multi-jours. Validation : l'heure de fin doit être postérieure à l'heure de début même quand les dates diffèrent.
+   - `apps/bookings/forms.py` : contrôle `end_time > start_time` (mêmes horaires chaque jour), aide de saisie mise à jour.
+
+2. **Un événement par jour dans le calendrier**
+   - `apps/bookings/views.py` (`api_bookings_json`) : la réservation est **éclatée en un événement par jour** de la plage, chacun avec la même heure début/fin, calculée en fuseau d'affichage (Europe/Paris). `extendedProps` enrichis : `timeRange`, `dayIndex`/`dayCount`, `rangeStartDate`/`rangeEndDate`, `isMultiDay`.
+
+3. **Affichage amélioré**
+   - `templates/bookings/calendar.html` : rendu personnalisé `eventContent` — heure « début – fin » en gras avec icône, motif, badge « Jour x/n » pour les réservations multi-jours ; modale de détail indiquant « Du … au … • plage chaque jour ».
+   - `templates/bookings/booking_detail.html` : durée « par jour », nombre de jours réservés.
+   - `templates/bookings/booking_list.html` : fin affichée avec date + heure et badge « x jours » pour les ranges multi-jours.
+
+4. **Test** : `test_multiday.py` — une réservation 14→16/09/2026 09:00–17:00 produit bien 3 événements, avec 09:00–17:00 identiques sur chacun des 3 jours.
+
+## 🕐 Option « horaires personnalisés par jour » (réservations multi-jours)
+
+**Nouveauté :** en plus du mode « horaires identiques » (plage unique répétée chaque jour, comportement historique), une réservation peut désormais définir **un créneau distinct par jour**.
+
+1. **Modèle** — `apps/bookings/models.py`
+   - Nouveau champ `day_schedules` (`JSONField`, liste vide par défaut) : `[{'date': 'AAAA-MM-JJ', 'start': 'HH:MM', 'end': 'HH:MM'}, ...]`.
+   - Nouvelle méthode `day_slots()` : renvoie les créneaux quotidiens réels. Si `day_schedules` est rempli → un créneau par jour saisi ; sinon → repli sur la plage unique répétée (rétro-compatible avec les réservations existantes).
+   - `duration_days` compte les jours réellement réservés ; ajout de `has_custom_schedule`.
+   - `_check_room_availability()` et `_check_overlapping()` vérifient désormais **jour par jour** (au lieu de la plage globale).
+   - Migration `0004_booking_day_schedules.py`.
+
+2. **Formulaire** — `apps/bookings/forms.py` + `templates/bookings/booking_form.html`
+   - Boutons radio « Horaires identiques chaque jour » / « Horaires personnalisés par jour ».
+   - En mode personnalisé, un tableau généré depuis les dates de début/fin : une ligne par jour avec heure de début/fin, bouton **Ajouter un jour** et suppression ligne par ligne (un jour supprimé = non réservé).
+   - `schedule_mode` + `day_schedules_json` (masqué) ; validation dans `BookingForm.clean()` : cohérence des dates, `fin > début` par jour, disponibilité et chevauchement **par jour**, enregistrées dans `day_schedules`.
+
+3. **Affichage**
+   - `apps/bookings/views.py` (`api_bookings_json`) : un événement par créneau quotidien via `day_slots()` (même chemin de normalisation que précédemment) ; `extendedProps` enrichis de `customSchedule`.
+   - `templates/bookings/calendar.html` : badge « Jour x/n • perso. » avec icône dédiée ; modale indiquant « horaires personnalisés selon le jour ».
+   - `templates/bookings/booking_detail.html` : tableau récapitulatif des horaires par jour.
+   - `templates/bookings/booking_list.html` : badge « x jours • perso. ».
+
+4. **Tests** — `test_schedule.py` : mode identique (inchangé), mode personnalisé (horaires distincts), jour sauté, entrée malformée ignorée, une seule journée. `test_multiday.py` : non-régression.
+
+## 🐛 Correction — `AttributeError: module 'datetime' has no attribute 'combine'`
+
+**Symptôme :** sur `POST /<pk>/edit/` (modification d'une réservation), erreur 500 :
+```
+AttributeError at /10/edit/
+module 'datetime' has no attribute 'combine'
+Exception Location: apps/bookings/models.py, line 162, in _check_overlapping
+Raised during: apps.bookings.views.BookingUpdateView
+```
+
+**Cause :** dans `models.py`, `import datetime` importe le **module**. Le code
+appelait `datetime.combine(...)`, qui n'existe pas sur le module → `AttributeError`.
+(`forms.py` et `views.py` font `from datetime import datetime`, donc y utiliser
+`datetime.combine(...)` reste correct.)
+
+**Correction :** `apps/bookings/models.py`, méthode `_check_overlapping()` —
+`datetime.combine(...)` remplacé par `datetime.datetime.combine(...)`.
+
+**Correctif secondaire (formulaire) :** à l'édition d'une réservation à horaires
+personnalisés, le bouton radio « Horaires personnalisés » n'était pas pré-coché et
+le tableau par jour restait vide, car seul `field.initial` était renseigné (le rendu
+lit `form.initial`). Corrigé dans `forms.py` (renseignement de `self.initial`) et
+`booking_form.html` (le mode est désormais lu sur le bouton radio réellement coché).

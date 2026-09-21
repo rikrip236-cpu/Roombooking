@@ -60,10 +60,29 @@ class BookingListView(LoginRequiredMixin, ListView):
         status = self.request.GET.get('status')
         if room_id:
             qs = qs.filter(room_id=room_id)
+        # Les dates sont stockées en UTC en base (voir config/settings.py),
+        # mais l'utilisateur saisit "Du"/"Au" en heure de Paris. Comparer
+        # directement la date UTC brute (start_datetime__date__gte) décale le
+        # filtre d'un jour pour les réservations tôt le matin ou tard le soir
+        # (ex: une réunion à 23h30 Paris est stockée à 21h30 UTC le même
+        # jour, mais une réunion à 00h30 Paris est stockée à 22h30 UTC la
+        # VEILLE). On convertit donc les bornes en datetime timezone-aware
+        # dans le fuseau d'affichage actif avant de filtrer.
+        current_tz = timezone.get_current_timezone()
         if date_from:
-            qs = qs.filter(start_datetime__date__gte=date_from)
+            parsed = parse_date(date_from)
+            if parsed:
+                start_of_day = timezone.make_aware(
+                    datetime.combine(parsed, datetime.min.time()), current_tz
+                )
+                qs = qs.filter(start_datetime__gte=start_of_day)
         if date_to:
-            qs = qs.filter(end_datetime__date__lte=date_to)
+            parsed = parse_date(date_to)
+            if parsed:
+                end_of_day = timezone.make_aware(
+                    datetime.combine(parsed, datetime.max.time()), current_tz
+                )
+                qs = qs.filter(start_datetime__lte=end_of_day)
         if status:
             qs = qs.filter(status=status)
         return qs.order_by('-start_datetime')
@@ -285,19 +304,55 @@ def api_bookings_json(request):
         'cancelled': '#9ca3af',
     }
     events = []
+    current_tz = timezone.get_current_timezone()
     for booking in qs.select_related('room', 'user'):
-        events.append({
-            'id': booking.id,
-            'title': f"{booking.title} — {booking.room.name}",
-            'start': booking.start_datetime.isoformat(),
-            'end': booking.end_datetime.isoformat(),
-            'extendedProps': {
-                'room': booking.room.name,
-                'user': booking.user.get_full_name() or booking.user.username,
-                'capacity': booking.room.capacity,
-                'floor': booking.get_floor_display(),
-            },
-            'backgroundColor': urgency_colors.get(booking.urgency_level, '#3b82f6'),
-            'borderColor': urgency_colors.get(booking.urgency_level, '#3b82f6'),
-        })
+        # Créneaux quotidiens réels de la réservation, via Booking.day_slots() :
+        #   - réservation classique → la plage horaire (début → fin) est répétée
+        #     à l'identique chaque jour ;
+        #   - réservation à horaires personnalisés → un créneau distinct par
+        #     jour, tel que saisi (les jours non réservés sont absents).
+        # Dans les deux cas on génère un événement par jour, ce qui rend la
+        # date et les heures (début/fin) de chaque journée parfaitement
+        # lisibles sur le calendrier.
+        slots = booking.day_slots()
+        if not slots:
+            continue
+        total_days = len(slots)
+        is_multi_day = total_days > 1
+        custom = booking.has_custom_schedule
+        color = urgency_colors.get(booking.urgency_level, '#3b82f6')
+        user_label = booking.user.get_full_name() or booking.user.username
+        floor_label = booking.get_floor_display()
+        range_start = slots[0]['date']
+        range_end = slots[-1]['date']
+        for day_index, slot in enumerate(slots, start=1):
+            time_range = f"{slot['start'].strftime('%H:%M')} – {slot['end'].strftime('%H:%M')}"
+            # Naïf → aware dans le fuseau d'affichage, puis ISO avec offset.
+            day_start_dt = timezone.make_aware(datetime.combine(slot['date'], slot['start']), current_tz)
+            day_end_dt = timezone.make_aware(datetime.combine(slot['date'], slot['end']), current_tz)
+            events.append({
+                'id': booking.id,
+                'title': f"{booking.title} — {booking.room.name}",
+                'start': day_start_dt.isoformat(),
+                'end': day_end_dt.isoformat(),
+                'extendedProps': {
+                    'room': booking.room.name,
+                    'user': user_label,
+                    'capacity': booking.room.capacity,
+                    'floor': floor_label,
+                    'startDate': slot['date'].strftime('%d/%m/%Y'),
+                    'endDate': slot['date'].strftime('%d/%m/%Y'),
+                    'startTime': slot['start'].strftime('%H:%M'),
+                    'endTime': slot['end'].strftime('%H:%M'),
+                    'timeRange': time_range,
+                    'isMultiDay': is_multi_day,
+                    'customSchedule': custom,
+                    'dayIndex': day_index,
+                    'dayCount': total_days,
+                    'rangeStartDate': range_start.strftime('%d/%m/%Y'),
+                    'rangeEndDate': range_end.strftime('%d/%m/%Y'),
+                },
+                'backgroundColor': color,
+                'borderColor': color,
+            })
     return JsonResponse(events, safe=False)

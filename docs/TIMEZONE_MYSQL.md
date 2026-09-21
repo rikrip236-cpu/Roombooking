@@ -41,6 +41,44 @@ TIME_ZONE_DISPLAY = 'Europe/Paris'
 **Aucune action nécessaire** : cette correction ne demande aucune migration
 ni modification de la base de données.
 
+## Complément indispensable : `time_zone` côté session MySQL
+
+`TIME_ZONE = 'UTC'` côté **Django** ne suffit pas toujours : il faut aussi
+que **MySQL lui-même** soit en UTC pour la session utilisée par Django.
+
+Par défaut, le fuseau horaire de session MySQL est souvent réglé sur
+`SYSTEM` (vérifiable avec `SELECT @@session.time_zone;`), c'est-à-dire qu'il
+suit le fuseau de l'OS (souvent `Europe/Paris` sous Windows). Pour résoudre
+ce nom `SYSTEM` en un décalage horaire concret, MySQL doit consulter les
+tables système `mysql.time_zone_name` — les mêmes tables absentes par
+défaut sur Laragon. Résultat : **l'erreur peut persister même avec
+`TIME_ZONE='UTC'` côté Django**, tant que MySQL reste sur `SYSTEM`.
+
+C'est pourquoi `config/settings.py` force maintenant explicitement la
+session MySQL en UTC dès la connexion, via `OPTIONS.init_command` :
+
+```python
+'OPTIONS': {
+    'charset': 'utf8mb4',
+    'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
+},
+```
+
+`'+00:00'` est un **décalage numérique**, pas un nom de fuseau (`'UTC'` ou
+`'SYSTEM'`) — MySQL peut l'appliquer directement, sans consulter aucune
+table système. C'est ce qui rend cette solution fiable même sans les tables
+tz installées.
+
+Pour vérifier que c'est bien actif, exécutez dans HeidiSQL/phpMyAdmin
+**pendant que le serveur Django tourne** :
+```sql
+SELECT @@session.time_zone;
+```
+Le résultat doit être `+00:00`. Si vous obtenez encore `SYSTEM` en dehors
+d'une requête Django (ex: dans un outil SQL classique comme HeidiSQL), c'est
+normal — `init_command` ne s'applique qu'aux connexions ouvertes par Django,
+pas aux autres clients MySQL.
+
 ## Alternative : installer les tables tz dans MySQL
 
 Si vous préférez que `TIME_ZONE` reste directement `'Europe/Paris'` dans

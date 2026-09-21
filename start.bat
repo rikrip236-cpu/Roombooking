@@ -32,12 +32,27 @@ REM --- 3. Activer l'environnement virtuel ---
 call venv\Scripts\activate.bat
 
 REM --- 4. Installer/mettre a jour les dependances ---
-echo [INFO] Verification des dependances...
-pip install -q --disable-pip-version-check -r requirements.txt
+REM On verifie d'abord si Django est deja installe dans le venv : si oui, on
+REM ne relance pas "pip install" (qui a besoin d'internet). Cela evite un
+REM blocage du script quand l'ordinateur n'a pas de connexion, alors que les
+REM dependances ont deja ete installees une premiere fois.
+python -c "import django" >nul 2>nul
 if errorlevel 1 (
-    echo [ERREUR] Echec de l'installation des dependances.
-    pause
-    exit /b 1
+    echo [INFO] Verification des dependances ^(connexion internet requise^)...
+    pip install -q --disable-pip-version-check -r requirements.txt
+    if errorlevel 1 (
+        echo.
+        echo [ERREUR] Echec de l'installation des dependances.
+        echo Cause probable : pas de connexion internet ^(pip doit telecharger
+        echo les paquets depuis PyPI la premiere fois^). Verifiez votre reseau
+        echo puis relancez ce script.
+        echo Si les dependances ont deja ete installees sur cet ordinateur,
+        echo verifiez que le dossier "venv" n'a pas ete supprime/deplace.
+        pause
+        exit /b 1
+    )
+) else (
+    echo [INFO] Dependances deja installees, verification ignoree.
 )
 
 REM --- 5. Verifier/creer le fichier .env (force la config MySQL/Laragon) ---
@@ -100,13 +115,22 @@ if errorlevel 1 (
     )
 )
 
-REM --- 8. Creer/mettre a jour les migrations puis creer les tables ---
-echo [INFO] Generation des migrations si necessaire...
-python manage.py makemigrations accounts rooms bookings --noinput
+REM --- 8. Creer les tables (appliquer les migrations Django) ---
+REM Les fichiers de migration sont deja ecrits et fournis avec le projet
+REM (apps/*/migrations/*.py) : on ne regenere JAMAIS de migrations ici avec
+REM "makemigrations --noinput", car cette commande peut echouer ou faire des
+REM choix automatiques incorrects sans confirmation interactive (notamment
+REM lors d'un changement de type de champ). On se contente d'appliquer les
+REM migrations existantes avec "migrate".
 echo [INFO] Creation des tables ^(migrations Django^)...
 python manage.py migrate --noinput
 if errorlevel 1 (
-    echo [ERREUR] Echec des migrations. Verifiez la connexion a la base de donnees.
+    echo.
+    echo [ERREUR] Echec des migrations. Causes possibles :
+    echo   - MySQL/Laragon n'est pas demarre ^(verifiez "Start All" dans Laragon^)
+    echo   - La base "roombooking" n'existe pas ou les identifiants .env sont incorrects
+    echo   - Une migration precedente a echoue a mi-chemin ^(base dans un etat incoherent^)
+    echo Le detail de l'erreur ci-dessus indique la cause exacte.
     pause
     exit /b 1
 )
@@ -127,10 +151,34 @@ if errorlevel 1 (
     python manage.py createsuperuser
 )
 
-REM --- 11. Lancer le serveur et ouvrir le navigateur ---
+REM --- 11. Ouvrir le port 8000 dans le pare-feu Windows (acces reseau local) ---
+netsh advfirewall firewall show rule name="RoomBooking-8000" >nul 2>nul
+if errorlevel 1 (
+    echo [INFO] Ouverture du port 8000 dans le pare-feu Windows...
+    netsh advfirewall firewall add rule name="RoomBooking-8000" dir=in action=allow protocol=TCP localport=8000 >nul 2>nul
+    if errorlevel 1 (
+        echo [ATTENTION] Impossible d'ouvrir le port automatiquement ^(droits administrateur requis^).
+        echo Lancez ce script "en tant qu'administrateur" pour que les autres postes du
+        echo reseau puissent s'y connecter, ou ouvrez le port 8000 manuellement.
+    )
+)
+
+REM --- 12. Recuperer l'adresse IP locale pour la partager sur le reseau ---
+set LOCAL_IP=
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /R /C:"IPv4"') do (
+    if not defined LOCAL_IP set LOCAL_IP=%%a
+)
+set LOCAL_IP=%LOCAL_IP: =%
+
+REM --- 13. Lancer le serveur et ouvrir le navigateur ---
 echo.
 echo ============================================
-echo   Serveur lance sur http://127.0.0.1:8000/
+echo   Serveur lance !
+echo   Sur cet ordinateur : http://127.0.0.1:8000/
+if defined LOCAL_IP (
+    echo   Depuis un autre appareil du meme reseau Wi-Fi/Ethernet :
+    echo       http://%LOCAL_IP%:8000/
+)
 echo   Admin : http://127.0.0.1:8000/admin/
 echo   Ctrl+C pour arreter le serveur
 echo ============================================

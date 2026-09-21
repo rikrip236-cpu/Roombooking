@@ -1,0 +1,59 @@
+# LIRE_MOI — Correction du conflit de migrations (RoomBooking)
+
+## Symptome
+Au lancement de `start.bat` :
+
+    CommandError: Conflicting migrations detected; multiple leaf nodes in the
+    migration graph: (0004_booking_day_schedules, 0005_booking_day_schedules in bookings).
+
+## Cause exacte
+Le dossier `apps/bookings/migrations/` contient DEUX migrations qui ajoutent le
+meme champ `day_schedules` :
+
+    apps/bookings/migrations/0004_booking_day_schedules.py   <-- A SUPPRIMER (ancien fichier)
+    apps/bookings/migrations/0005_booking_day_schedules.py   <-- A CONSERVER (version corrigee)
+
+`0004_booking_day_schedules.py` est un RESIDU de la premiere livraison : il a ete
+remplace par `0005_booking_day_schedules.py`, mais l'ancien fichier n'a pas ete
+efface chez vous. Les deux etant des "feuilles" du graphe, Django refuse de migrer.
+
+## Correction (2 methodes au choix)
+
+### Methode A — automatique
+Double-cliquez sur `fix_migrations.bat` (a placer a la racine du projet, a cote de
+`manage.py`). Il supprime le fichier orphelin, nettoie les caches puis lance `migrate`.
+
+### Methode B — manuelle
+1. SUPPRIMER ce fichier :
+       apps\bookings\migrations\0004_booking_day_schedules.py
+2. SUPPRIMER les dossiers de cache (facultatif mais recommande) :
+       apps\bookings\migrations\__pycache__\
+       apps\bookings\__pycache__\
+3. Relancer :
+       python manage.py migrate
+
+## NE PAS toucher aux fichiers suivants (ils doivent rester)
+    apps/bookings/migrations/0001_initial.py
+    apps/bookings/migrations/0002_booking_attendees_count_booking_requested_equipment_and_more.py
+    apps/bookings/migrations/0003_booking_floor.py
+    apps/bookings/migrations/0003_alter_booking_attendees_count.py
+    apps/bookings/migrations/0004_merge_20260908_0720.py   <-- VOTRE fusion, a conserver
+    apps/bookings/migrations/0005_booking_day_schedules.py <-- migration corrigee
+
+## Resultat attendu
+    Applying bookings.0004_merge_20260908_0720... OK
+    Applying bookings.0005_booking_day_schedules... OK
+
+L'erreur "Unknown column 'bookings_booking.day_schedules'" disparait alors aussi.
+
+## Ne PAS lancer
+    python manage.py makemigrations --merge
+C'est inutile ici et cela ajouterait un fichier de fusion superflu.
+
+## En cas de message "duplicate column name" / "Duplicate column name 'day_schedules'"
+Cela signifie que la colonne existe deja en base (execution partielle anterieure).
+Verifiez d'abord dans MySQL :
+    SHOW COLUMNS FROM bookings_booking LIKE 'day_schedules';
+Puis, si et seulement si la colonne est bien presente, marquez la migration comme
+deja appliquee :
+    python manage.py migrate bookings 0005 --fake

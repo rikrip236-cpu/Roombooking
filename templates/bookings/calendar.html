@@ -24,15 +24,115 @@
     }
     .quick-stat-card .stat-value { font-size: 1.4rem; font-weight: 700; line-height: 1; }
     .quick-stat-card .stat-label { font-size: 0.78rem; opacity: 0.9; }
-    #calendar { min-height: 70vh; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .fc-event { cursor: pointer; border-radius: 6px; padding: 2px 6px; font-size: 13px; }
-    .fc-event:hover { opacity: 0.9; transform: scale(1.01); transition: all 0.15s ease; }
-    .fc-toolbar-title { font-weight: 700; color: #1e293b; }
-    .fc-button-primary { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
+
+    /* ===== Calendrier : design épuré et moderne ===== */
+    #calendar {
+        min-height: 70vh;
+        background: white;
+        padding: 20px;
+        border-radius: 16px;
+        box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+        border: 1px solid #eef1f6;
+    }
+    .fc { --fc-border-color: #eef1f6; --fc-today-bg-color: #eff6ff; }
+    .fc-toolbar-title { font-weight: 700; color: #1e293b; font-size: 1.35rem !important; }
+    .fc-button-primary {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+        text-transform: capitalize;
+        box-shadow: none !important;
+    }
     .fc-button-primary:hover { background-color: #2563eb !important; }
+    .fc-button-primary:not(:disabled).fc-button-active { background-color: #1d4ed8 !important; }
+    .fc-today-button:disabled { opacity: 0.4 !important; }
+
+    /* En-têtes des jours (dim, lun, mar...) : discrets et épurés */
+    .fc-col-header-cell {
+        background: #f8fafc;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    .fc-col-header-cell-cushion {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 10px 4px !important;
+        text-decoration: none;
+    }
+
+    /* Numéros de jour (1, 2, 3...) : plus discrets, cercle au survol/aujourd'hui */
+    .fc-daygrid-day-number {
+        color: #475569;
+        font-weight: 500;
+        font-size: 0.85rem;
+        padding: 6px 8px !important;
+        text-decoration: none;
+    }
+    .fc-day-today .fc-daygrid-day-number {
+        background: #3b82f6;
+        color: #fff;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 4px;
+        padding: 0 !important;
+    }
+    .fc-daygrid-day-frame { transition: background-color 0.15s ease; }
+    .fc-daygrid-day:hover .fc-daygrid-day-frame { background-color: #fafbfc; }
+    .fc-day-other .fc-daygrid-day-number { color: #cbd5e1; }
+
+    /* Événements : cartes propres avec heure bien visible */
+    .fc-event {
+        cursor: pointer;
+        border: none !important;
+        border-radius: 8px;
+        padding: 3px 7px;
+        font-size: 12.5px;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .fc-event:hover { filter: brightness(0.94); transform: translateY(-1px); transition: all 0.15s ease; }
+    .fc-daygrid-event-dot { display: none; }
+    .fc-event-time { font-weight: 700; }
+
+    /* Contenu d'événement enrichi : heure (début – fin) bien visible,
+       motif, et badge "Jour x/n" pour les réservations multi-jours. */
+    .fc-ev { display: flex; flex-direction: column; gap: 1px; line-height: 1.15; overflow: hidden; }
+    .fc-ev-time { font-weight: 700; font-size: 11.5px; letter-spacing: 0.01em; white-space: nowrap; }
+    .fc-ev-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fc-ev-badge {
+        display: inline-block;
+        background: rgba(255,255,255,0.85);
+        color: #0f172a;
+        border-radius: 4px;
+        font-size: 9.5px;
+        font-weight: 700;
+        padding: 0 4px;
+        margin-left: 4px;
+        vertical-align: middle;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    /* Autorise 2 lignes (heure+badge, puis motif) dans la vue mois. */
+    .fc-daygrid-event { white-space: normal; }
+    .fc-list-event:hover td { background-color: #f8fafc; }
+    .fc-list-day-cushion { background-color: #f8fafc !important; }
+
     .room-filter-bar { background: white; padding: 12px 16px; border-radius: 10px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
     .urgency-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 0.85rem; color: #475569; }
     .urgency-legend .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    /* ===== Modale de détail : mise en page plus lisible ===== */
+    #bookingModal .modal-content { border-radius: 14px; border: none; overflow: hidden; }
+    #bookingModal .modal-body p { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; margin-bottom: 0; border-bottom: 1px solid #f1f5f9; }
+    #bookingModal .modal-body p:last-child { border-bottom: none; }
+    #bookingModal .modal-body p strong { color: #475569; font-weight: 600; font-size: 0.9rem; }
+    #bookingModal .modal-body p span { color: #0f172a; font-weight: 500; text-align: right; }
+    #bookingModal .period-badge { background: #eff6ff; color: #1d4ed8; border-radius: 8px; padding: 10px 14px; font-weight: 600; text-align: center; margin-bottom: 12px; }
 
     /* ===== Responsive : tablette (≤ 991px) ===== */
     @media (max-width: 991.98px) {
@@ -118,17 +218,25 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="bi bi-calendar-event"></i> Détails de la réservation</h5>
+                <h5 class="modal-title"><i class="bi bi-calendar-event"></i> <span id="modalTitle"></span></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p><strong><i class="bi bi-tag"></i> Motif :</strong> <span id="modalTitle"></span></p>
-                <p><strong><i class="bi bi-building"></i> Salle :</strong> <span id="modalRoom"></span></p>
-                <p><strong><i class="bi bi-layers"></i> Étage :</strong> <span id="modalFloor"></span></p>
-                <p><strong><i class="bi bi-person"></i> Réservé par :</strong> <span id="modalUser"></span></p>
-                <p><strong><i class="bi bi-clock"></i> Début :</strong> <span id="modalStart"></span></p>
-                <p><strong><i class="bi bi-clock-history"></i> Fin :</strong> <span id="modalEnd"></span></p>
-                <p><strong><i class="bi bi-people"></i> Capacité :</strong> <span id="modalCapacity"></span> personnes</p>
+                <div class="period-badge">
+                    <i class="bi bi-calendar-range"></i>
+                    <span id="modalPeriod"></span>
+                </div>
+                <div class="alert alert-info py-2 px-3 mb-3 d-none" id="modalMultiDayBox">
+                    <i class="bi bi-arrow-repeat"></i> <span id="modalMultiDayText"></span>
+                </div>
+                <p><strong><i class="bi bi-building"></i> Salle</strong> <span id="modalRoom"></span></p>
+                <p><strong><i class="bi bi-layers"></i> Étage</strong> <span id="modalFloor"></span></p>
+                <p><strong><i class="bi bi-person"></i> Réservé par</strong> <span id="modalUser"></span></p>
+                <p><strong><i class="bi bi-calendar-event"></i> Date de début</strong> <span id="modalStartDate"></span></p>
+                <p><strong><i class="bi bi-clock"></i> Heure de début</strong> <span id="modalStartTime"></span></p>
+                <p><strong><i class="bi bi-calendar-check"></i> Date de fin</strong> <span id="modalEndDate"></span></p>
+                <p><strong><i class="bi bi-clock-history"></i> Heure de fin</strong> <span id="modalEndTime"></span></p>
+                <p><strong><i class="bi bi-people"></i> Capacité</strong> <span id="modalCapacity"></span></p>
             </div>
             <div class="modal-footer">
                 <a href="#" id="modalDetailLink" class="btn btn-primary">Voir la fiche complète</a>
@@ -182,15 +290,66 @@ document.addEventListener('DOMContentLoaded', function() {
             extraParams: function() { return { room: roomFilter.value }; },
             failure: function() { showToast('Erreur lors du chargement des événements', 'danger'); }
         }],
+        eventContent: function(arg) {
+            // Rendu personnalisé : l'heure (début – fin) apparaît en gras
+            // au-dessus du motif, et un badge précise le jour courant pour les
+            // réservations qui s'étendent sur plusieurs jours.
+            var props = arg.event.extendedProps;
+            var wrap = document.createElement('div');
+            wrap.className = 'fc-ev';
+
+            var timeEl = document.createElement('div');
+            timeEl.className = 'fc-ev-time';
+            timeEl.innerHTML = '<i class="bi ' + (props.customSchedule ? 'bi-clock-history' : 'bi-clock') + '"></i> ' + (props.timeRange || (props.startTime + ' – ' + props.endTime));
+            wrap.appendChild(timeEl);
+
+            var titleEl = document.createElement('div');
+            titleEl.className = 'fc-ev-title';
+            titleEl.textContent = (arg.event.title || '').split(' — ')[0];
+            wrap.appendChild(titleEl);
+
+            if (props.isMultiDay) {
+                // Badge place EN LIGNE dans la ligne d'heure (et non sur une
+                // 3e ligne) : la vue mois affiche ainsi chaque jour reserve sur
+                // deux lignes seulement, sans risque de rognage vertical.
+                var badge = document.createElement('span');
+                badge.className = 'fc-ev-badge';
+                badge.textContent = 'J' + props.dayIndex + '/' + props.dayCount + (props.customSchedule ? ' • perso.' : '');
+                timeEl.appendChild(badge);
+            }
+            return { domNodes: [wrap] };
+        },
         eventClick: function(info) {
             var props = info.event.extendedProps;
             document.getElementById('modalTitle').textContent = info.event.title.split(' — ')[0];
             document.getElementById('modalRoom').textContent = props.room;
             document.getElementById('modalFloor').textContent = props.floor;
             document.getElementById('modalUser').textContent = props.user;
-            document.getElementById('modalStart').textContent = new Date(info.event.start).toLocaleString('fr-FR');
-            document.getElementById('modalEnd').textContent = new Date(info.event.end).toLocaleString('fr-FR');
-            document.getElementById('modalCapacity').textContent = props.capacity;
+            document.getElementById('modalStartDate').textContent = props.startDate;
+            document.getElementById('modalStartTime').textContent = props.startTime;
+            document.getElementById('modalEndDate').textContent = props.endDate;
+            document.getElementById('modalEndTime').textContent = props.endTime;
+            document.getElementById('modalCapacity').textContent = props.capacity + ' personnes';
+
+            var multiDayBox = document.getElementById('modalMultiDayBox');
+            if (props.isMultiDay) {
+                // Multi-jours : plage unique répétée, ou horaires personnalisés.
+                document.getElementById('modalPeriod').textContent =
+                    'Du ' + props.rangeStartDate + ' au ' + props.rangeEndDate +
+                    '  •  ' + (props.customSchedule
+                        ? 'horaires personnalisés selon le jour'
+                        : props.timeRange + ' chaque jour');
+                document.getElementById('modalMultiDayText').textContent =
+                    'Jour ' + props.dayIndex + ' sur ' + props.dayCount +
+                    (props.customSchedule
+                        ? ' — horaires personnalisés (' + props.timeRange + ' ce jour).'
+                        : ' — mêmes horaires (' + props.timeRange + ') tous les jours.');
+                multiDayBox.classList.remove('d-none');
+            } else {
+                document.getElementById('modalPeriod').textContent =
+                    props.startDate + '  •  ' + props.timeRange;
+                multiDayBox.classList.add('d-none');
+            }
             document.getElementById('modalDetailLink').href = bookingDetailUrlTemplate.replace('999999999', info.event.id);
             modal.show();
         },

@@ -22,7 +22,31 @@
                     <div class="col-md-6">
                         <p><strong><i class="bi bi-clock"></i> Début :</strong> {{ booking.start_datetime|date:"d/m/Y à H:i" }}</p>
                         <p><strong><i class="bi bi-clock-history"></i> Fin :</strong> {{ booking.end_datetime|date:"d/m/Y à H:i" }}</p>
-                        <p><strong><i class="bi bi-hourglass"></i> Durée :</strong> {{ booking.duration_minutes }} minutes</p>
+                        {% if booking.is_multi_day %}
+                        <p><strong><i class="bi bi-calendar-range"></i> Jours réservés :</strong> <span class="badge bg-info text-dark">{{ booking.duration_days }} jours</span>
+                            {% if not booking.has_custom_schedule %}<span class="text-muted small">(mêmes horaires chaque jour)</span>{% else %}<span class="text-muted small">(horaires personnalisés)</span>{% endif %}
+                        </p>
+                        {% endif %}
+                        {% if booking.has_custom_schedule %}
+                        <div class="mt-2 mb-2">
+                            <p class="mb-1"><strong><i class="bi bi-clock-history"></i> Horaires par jour :</strong></p>
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead class="table-light">
+                                    <tr><th>Jour</th><th>Début</th><th>Fin</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for slot in booking.day_slots %}
+                                    <tr>
+                                        <td>{{ slot.date|date:"D d/m/Y" }}</td>
+                                        <td>{{ slot.start|time:"H:i" }}</td>
+                                        <td>{{ slot.end|time:"H:i" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                        <p><strong><i class="bi bi-hourglass"></i> Durée {% if booking.is_multi_day %}par jour {% endif %}:</strong> {{ booking.duration_minutes }} minutes</p>
                         <p><strong><i class="bi bi-person-lines-fill"></i> Personnes attendues :</strong> {{ booking.attendees_count }}</p>
                     </div>
                 </div>

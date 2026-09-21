@@ -1,3 +1,5 @@
+import datetime
+
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -51,6 +53,16 @@ class Booking(models.Model):
         verbose_name='Personne en charge du matériel',
         help_text='Nom de la personne responsable / à contacter pour le matériel demandé'
     )
+    day_schedules = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='Horaires personnalisés par jour',
+        help_text=
+            "Optionnel. Liste des créneaux quotidiens d'une réservation à "
+            "horaires variables, au format "
+            "[{'date': 'AAAA-MM-JJ', 'start': 'HH:MM', 'end': 'HH:MM'}, ...]. "
+            "Vide = même plage horaire (début → fin) répétée chaque jour."
+    )
     start_datetime = models.DateTimeField(verbose_name='Début')
     end_datetime = models.DateTimeField(verbose_name='Fin')
     status = models.CharField(
@@ -95,12 +107,27 @@ class Booking(models.Model):
                 'attendees_count': f'Cette salle ne peut accueillir que {self.room.capacity} personne(s).'
             })
         # start_datetime/end_datetime peuvent être absents à ce stade (ex: champs
-        # personnalisés 'date'/'start_time'/'end_time' du formulaire non encore valides,
-        # ou exclusion de full_clean) : on ne compare que si les deux sont renseignés.
+        # personnalisés 'start_date'/'end_date'/'start_time'/'end_time' du formulaire
+        # non encore valides, ou exclusion de full_clean) : on ne compare que si les
+        # deux sont renseignés.
         if self.start_datetime is None or self.end_datetime is None:
             return
         if self.end_datetime <= self.start_datetime:
             raise ValidationError({'end_datetime': 'La date de fin doit être postérieure à la date de début.'})
+        # Réservation à plage unique (mode par défaut) : l'heure de fin doit
+        # toujours être postérieure à l'heure de début, même si les dates
+        # diffèrent (ex. 09:00 → 17:00 du lundi au mercredi).
+        if not self.day_schedules and self.daily_end_time() <= self.daily_start_time():
+            raise ValidationError({
+                'end_datetime': "Chaque jour, l'heure de fin doit être postérieure à l'heure de début."
+            })
+        # Horaires personnalisés : chaque créneau quotidien doit être valide.
+        for slot in self.day_slots():
+            if slot['end'] <= slot['start']:
+                raise ValidationError({
+                    'end_datetime': f"Le {slot['date'].strftime('%d/%m/%Y')} : "
+                                    "l'heure de fin doit être postérieure à l'heure de début."
+                })
         if self.start_datetime < timezone.now() and self._state.adding:
             raise ValidationError({'start_datetime': 'Impossible de réserver dans le passé.'})
         self._check_room_availability()
@@ -108,34 +135,52 @@ class Booking(models.Model):
             self._check_overlapping()
 
     def _check_room_availability(self):
+        """Vérifie les horaires d'ouverture pour CHAQUE jour de la réservation,
+        en utilisant les créneaux quotidiens réels (plage unique répétée ou
+        horaires personnalisés par jour)."""
         from apps.rooms.models import RoomAvailability
-        day = self.start_datetime.weekday()
-        try:
-            avail = RoomAvailability.objects.get(room=self.room, day_of_week=day)
-        except RoomAvailability.DoesNotExist:
-            return
-        if avail.is_closed:
-            raise ValidationError({'start_datetime': 'La salle est fermée ce jour-là.'})
-        start_time = self.start_datetime.time()
-        end_time = self.end_datetime.time()
-        if start_time < avail.open_time or end_time > avail.close_time:
-            raise ValidationError({
-                'start_datetime': f'La salle est ouverte de {avail.open_time} à {avail.close_time} ce jour.'
-            })
+        for slot in self.day_slots():
+            try:
+                avail = RoomAvailability.objects.get(room=self.room, day_of_week=slot['date'].weekday())
+            except RoomAvailability.DoesNotExist:
+                continue
+            if avail.is_closed:
+                raise ValidationError({
+                    'start_datetime': f"La salle est fermée le {slot['date'].strftime('%d/%m/%Y')}."
+                })
+            if slot['start'] < avail.open_time or slot['end'] > avail.close_time:
+                raise ValidationError({
+                    'start_datetime': f"La salle est ouverte de {avail.open_time} à {avail.close_time} "
+                                       f"le {slot['date'].strftime('%d/%m/%Y')}."
+                })
 
     def _check_overlapping(self):
-        overlapping = Booking.objects.filter(
-            room=self.room,
-            status='confirmed',
-            start_datetime__lt=self.end_datetime,
-            end_datetime__gt=self.start_datetime,
-        )
-        if self.pk:
-            overlapping = overlapping.exclude(pk=self.pk)
-        if overlapping.exists():
-            raise ValidationError({
-                '__all__': 'Cette salle est déjà réservée sur ce créneau horaire.'
-            })
+        """Détecte un chevauchement jour par jour : chaque créneau quotidien
+        réel de la réservation est comparé aux réservations confirmées."""
+        tz = timezone.get_current_timezone()
+        for slot in self.day_slots():
+            # NB : models.py fait `import datetime` (le MODULE) → il faut
+            # datetime.datetime.combine(...) et non datetime.combine(...),
+            # sinon AttributeError: module 'datetime' has no attribute 'combine'.
+            slot_start = timezone.make_aware(
+                datetime.datetime.combine(slot['date'], slot['start']), tz
+            )
+            slot_end = timezone.make_aware(
+                datetime.datetime.combine(slot['date'], slot['end']), tz
+            )
+            overlapping = Booking.objects.filter(
+                room=self.room,
+                status='confirmed',
+                start_datetime__lt=slot_end,
+                end_datetime__gt=slot_start,
+            )
+            if self.pk:
+                overlapping = overlapping.exclude(pk=self.pk)
+            if overlapping.exists():
+                raise ValidationError({
+                    '__all__': f"Cette salle est déjà réservée le {slot['date'].strftime('%d/%m/%Y')} "
+                               f"de {slot['start'].strftime('%H:%M')} à {slot['end'].strftime('%H:%M')}."
+                })
 
     def cancel(self, cancelled_by_user):
         self.status = 'cancelled'
@@ -143,9 +188,102 @@ class Booking(models.Model):
         self.cancelled_by = cancelled_by_user
         self.save(update_fields=['status', 'cancelled_at', 'cancelled_by', 'updated_at'])
 
+    def _local(self, value):
+        """Convertit un datetime stocké (UTC) vers le fuseau d'affichage actif
+        (Europe/Paris par défaut via TimezoneDisplayMiddleware)."""
+        return timezone.localtime(value, timezone.get_current_timezone())
+
+    @property
+    def start_local(self):
+        return self._local(self.start_datetime)
+
+    @property
+    def end_local(self):
+        return self._local(self.end_datetime)
+
+    def daily_start_time(self):
+        """Heure de début (locale) appliquée à CHAQUE jour de la réservation."""
+        return self._local(self.start_datetime).time()
+
+    def daily_end_time(self):
+        """Heure de fin (locale) appliquée à CHAQUE jour de la réservation."""
+        return self._local(self.end_datetime).time()
+
+    @property
+    def is_multi_day(self):
+        """Vrai si la réservation couvre plusieurs jours calendaires."""
+        return self._local(self.start_datetime).date() != self._local(self.end_datetime).date()
+
+    @property
+    def duration_days(self):
+        """Nombre de jours réellement réservés.
+
+        En mode horaires personnalisés, certains jours peuvent être absents :
+        on compte donc les créneaux quotidiens définis. Sinon, il s'agit du
+        nombre de jours calendaires couverts (bornes incluses)."""
+        if self.day_schedules:
+            return len(self.day_slots())
+        start = self._local(self.start_datetime).date()
+        end = self._local(self.end_datetime).date()
+        return (end - start).days + 1
+
+    @property
+    def has_custom_schedule(self):
+        """Vrai si des horaires personnalisés par jour sont définis."""
+        return bool(self.day_schedules)
+
+    def day_slots(self):
+        """Retourne la liste ordonnée des créneaux quotidiens de la
+        réservation : [{'date': date, 'start': time, 'end': time}, ...].
+
+        - Si des horaires personnalisés sont définis (day_schedules), ils sont
+          utilisés tels quels (un créneau par jour saisi) ;
+        - Sinon, la plage horaire unique (start → end) est répétée à
+          l'identique sur chaque jour de la période (comportement historique).
+        Les horaires sont renvoyés en heure locale d'affichage."""
+        tz = timezone.get_current_timezone()
+        if self.day_schedules:
+            slots = []
+            for item in self.day_schedules:
+                try:
+                    slot_date = datetime.date.fromisoformat(item['date'])
+                    slot_start = datetime.time.fromisoformat(item['start'])
+                    slot_end = datetime.time.fromisoformat(item['end'])
+                except (KeyError, ValueError, TypeError):
+                    # Entrée malformée ignorée : une seule ligne corrompue ne
+                    # doit pas faire échouer l'affichage complet du calendrier.
+                    continue
+                slots.append({'date': slot_date, 'start': slot_start, 'end': slot_end})
+            slots.sort(key=lambda s: s['date'])
+            if slots:
+                return slots
+        # Repli (mode par défaut) : plage unique répétée sur toute la période.
+        start_local = timezone.localtime(self.start_datetime, tz)
+        end_local = timezone.localtime(self.end_datetime, tz)
+        daily_start = start_local.time()
+        daily_end = end_local.time()
+        slots = []
+        day = start_local.date()
+        last = end_local.date()
+        while day <= last:
+            slots.append({'date': day, 'start': daily_start, 'end': daily_end})
+            day += datetime.timedelta(days=1)
+        return slots
+
     @property
     def duration_minutes(self):
-        delta = self.end_datetime - self.start_datetime
+        """Durée du créneau QUOTIDIEN, identique pour chaque jour du range.
+
+        Pour une réservation multi-jours (ex. 09:00 → 17:00 du lundi au
+        mercredi), il s'agit de la durée d'une journée (8h), et non de la
+        durée cumulée sur toute la période."""
+        if not self.start_datetime or not self.end_datetime:
+            return 0
+        base = datetime.date.min
+        delta = (
+            datetime.datetime.combine(base, self.daily_end_time())
+            - datetime.datetime.combine(base, self.daily_start_time())
+        )
         return int(delta.total_seconds() // 60)
 
     @property

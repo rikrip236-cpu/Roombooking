@@ -76,7 +76,20 @@ if DB_ENGINE == 'mysql':
             'PORT': config('DB_PORT', default='3306'),
             'OPTIONS': {
                 'charset': 'utf8mb4',
-                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                # SET time_zone='+00:00' force explicitement CHAQUE session
+                # MySQL en UTC numérique dès la connexion. C'est nécessaire
+                # en plus de TIME_ZONE='UTC' côté Django : par défaut, le
+                # fuseau horaire MySQL est souvent réglé sur "SYSTEM" (celui
+                # de l'OS Windows, ex. Europe/Paris). Or MySQL doit résoudre
+                # ce nom via les tables système mysql.time_zone_name pour
+                # certaines requêtes (ex. date_hierarchy de l'admin Django),
+                # tables absentes par défaut sur une installation Laragon.
+                # Résultat sans ce réglage : l'erreur persiste même avec
+                # TIME_ZONE='UTC' côté Django, car MySQL, lui, reste sur
+                # "SYSTEM". Un décalage numérique comme '+00:00' ne nécessite
+                # AUCUNE table de nommage de fuseau : il fonctionne toujours,
+                # sans dépendance d'installation supplémentaire.
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+00:00'",
             },
         }
     }
