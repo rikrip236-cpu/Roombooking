@@ -20,8 +20,8 @@
                         {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <p><strong><i class="bi bi-clock"></i> Début :</strong> {{ booking.start_datetime|date:"d/m/Y à H:i" }}</p>
-                        <p><strong><i class="bi bi-clock-history"></i> Fin :</strong> {{ booking.end_datetime|date:"d/m/Y à H:i" }}</p>
+                        <p><strong><i class="bi bi-calendar"></i> Date :</strong> {{ booking.start_datetime|date:"d/m/Y" }} - {{ booking.end_datetime|date:"d/m/Y" }}</p>
+                        <p><strong><i class="bi bi-clock-history"></i> Heure :</strong> {{ booking.start_datetime|date:"H:i" }} - {{ booking.end_datetime|date:"H:i" }}</p>
                         {% if booking.is_multi_day %}
                         <p><strong><i class="bi bi-calendar-range"></i> Jours réservés :</strong> <span class="badge bg-info text-dark">{{ booking.duration_days }} jours</span>
                             {% if not booking.has_custom_schedule %}<span class="text-muted small">(mêmes horaires chaque jour)</span>{% else %}<span class="text-muted small">(horaires personnalisés)</span>{% endif %}

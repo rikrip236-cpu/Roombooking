@@ -16,10 +16,7 @@ class BookingForm(forms.ModelForm):
     end_date = forms.DateField(
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         label='Date de fin',
-        help_text=(
-            "Identique à la date de début pour une réunion sur une seule journée. "
-            "Pour plusieurs jours, choisissez la répartition des horaires ci-dessous."
-        )
+    
     )
     start_time = forms.TimeField(
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),

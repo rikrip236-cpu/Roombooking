@@ -105,20 +105,17 @@
     .fc-ev-time { font-weight: 700; font-size: 11.5px; letter-spacing: 0.01em; white-space: nowrap; }
     .fc-ev-title { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .fc-ev-badge {
-        display: inline-block;
+        align-self: flex-start;
         background: rgba(255,255,255,0.85);
         color: #0f172a;
         border-radius: 4px;
         font-size: 9.5px;
         font-weight: 700;
         padding: 0 4px;
-        margin-left: 4px;
-        vertical-align: middle;
+        margin-top: 1px;
         text-transform: uppercase;
         letter-spacing: 0.02em;
     }
-    /* Autorise 2 lignes (heure+badge, puis motif) dans la vue mois. */
-    .fc-daygrid-event { white-space: normal; }
     .fc-list-event:hover td { background-color: #f8fafc; }
     .fc-list-day-cushion { background-color: #f8fafc !important; }
 
@@ -232,10 +229,8 @@
                 <p><strong><i class="bi bi-building"></i> Salle</strong> <span id="modalRoom"></span></p>
                 <p><strong><i class="bi bi-layers"></i> Étage</strong> <span id="modalFloor"></span></p>
                 <p><strong><i class="bi bi-person"></i> Réservé par</strong> <span id="modalUser"></span></p>
-                <p><strong><i class="bi bi-calendar-event"></i> Date de début</strong> <span id="modalStartDate"></span></p>
-                <p><strong><i class="bi bi-clock"></i> Heure de début</strong> <span id="modalStartTime"></span></p>
-                <p><strong><i class="bi bi-calendar-check"></i> Date de fin</strong> <span id="modalEndDate"></span></p>
-                <p><strong><i class="bi bi-clock-history"></i> Heure de fin</strong> <span id="modalEndTime"></span></p>
+                <p><strong><i class="bi bi-calendar-event"></i> Date de début et de fin</strong> <span id="modalStartDate"></span> - <span id="modalEndDate"></span></p>
+                <p><strong><i class="bi bi-clock"></i> Heure de début et de fin</strong> <span id="modalStartTime"></span> - <span id="modalEndTime"></span></p>
                 <p><strong><i class="bi bi-people"></i> Capacité</strong> <span id="modalCapacity"></span></p>
             </div>
             <div class="modal-footer">
@@ -309,13 +304,10 @@ document.addEventListener('DOMContentLoaded', function() {
             wrap.appendChild(titleEl);
 
             if (props.isMultiDay) {
-                // Badge place EN LIGNE dans la ligne d'heure (et non sur une
-                // 3e ligne) : la vue mois affiche ainsi chaque jour reserve sur
-                // deux lignes seulement, sans risque de rognage vertical.
-                var badge = document.createElement('span');
+                var badge = document.createElement('div');
                 badge.className = 'fc-ev-badge';
-                badge.textContent = 'J' + props.dayIndex + '/' + props.dayCount + (props.customSchedule ? ' • perso.' : '');
-                timeEl.appendChild(badge);
+                badge.textContent = 'Jour ' + props.dayIndex + '/' + props.dayCount + (props.customSchedule ? ' • perso.' : '');
+                wrap.appendChild(badge);
             }
             return { domNodes: [wrap] };
         },
